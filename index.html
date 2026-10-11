@@ -48,14 +48,13 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 #tip{position:fixed;z-index:6;pointer-events:none;max-width:280px;background:var(--pan);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none}
 </style></head><body>
 <h1>Celestial Sphere Lab</h1>
-<div class="sub">Drag to rotate · scroll to zoom · pick the star in Controls Everything is drawn for an observer at the centre.</div>
+<div class="sub">Drag to rotate · scroll to zoom · choose the object in the right panel Everything is drawn for an observer at the centre.</div>
 <main>
-<button class="tgl" id="tl">Tutorial</button><button class="tgl" id="tr">Controls</button>
-<aside id="lft"><div class="box"><b>Tutorial</b><div class="les" id="les"></div></div><div class="box" id="card"></div></aside>
+<button class="tgl" id="tl" title="Show / hide lessons">☰</button><button class="tgl" id="tr" title="Show / hide controls">⚙</button>
+<aside id="lft"><div class="box"><div class="les" id="les" style="margin-top:0"></div></div><div class="box" id="card"></div></aside>
 <section class="stage"><canvas id="cv"></canvas>
 <div class="box tg" id="legend"></div></section>
 <section id="ctl">
-<div class="box"><b>Coordinate system</b><div class="seg" id="sys" style="margin-top:6px"></div><div class="def" id="def" style="margin-top:8px"></div></div>
 <div class="box">
 <label class="r">Time (UT)<input type="range" id="ut" min="0" max="24" step="0.01" value="21"><output id="utO"></output></label>
 <label class="r">Date<input type="range" id="dy" min="0" max="364" value="78"><output id="dyO"></output></label>
@@ -64,7 +63,6 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 <div class="seg" style="margin-top:6px"><button class="b" id="play">▶ Play</button>
 <select id="spd"><option value="600">10 min/s</option><option value="3600" selected>1 h/s</option><option value="21600">6 h/s</option><option value="86400">1 d/s</option></select>
 <button class="b" data-d="78">Mar equinox</button><button class="b" data-d="171">Jun solstice</button><button class="b" data-d="265">Sep equinox</button><button class="b" data-d="354">Dec solstice</button></div></div>
-<div class="box"><b>Time system</b> <span class="def">(independent of the coordinate system)</span><div class="seg" id="tms" style="margin-top:6px"></div></div>
 <div class="box"><b>Object</b> <select id="obj"></select>
 <div id="cust" style="display:none"><label class="r">RA<input type="range" id="cra" min="0" max="24" step="0.01" value="12"><output id="craO"></output></label>
 <label class="r">Dec<input type="range" id="cde" min="-90" max="90" step="0.5" value="20"><output id="cdeO"></output></label></div></div>
@@ -129,22 +127,22 @@ function upd(){
 // camera
 let W,R,cx,cy;
 function proj(p,k=1){const c=Math.cos(S.yaw),s=Math.sin(S.yaw),x1=p[0]*c-p[1]*s,y1=p[0]*s+p[1]*c,cp=Math.cos(S.pitch),sp=Math.sin(S.pitch),y2=y1*cp-p[2]*sp,z2=y1*sp+p[2]*cp;return[cx+x1*R*k,cy-z2*R*k,y2]}
-let FG,SOLID=0,HOT=[];
+let FG,SOLID=0,HOT=[],LBL=[];
 function line(f,t0,t1,col,w,k=1,dash){const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));let a=proj(f(t0),k);
  ctx.lineWidth=w;ctx.strokeStyle=col;ctx.setLineDash(dash||[]);ctx.lineCap='butt';
  if(SOLID){ctx.globalAlpha=1;ctx.lineJoin='round';ctx.lineCap=dash?'butt':'round';ctx.beginPath();ctx.moveTo(a[0],a[1]);for(let i=1;i<=n;i++){const b=proj(f(t0+(t1-t0)*i/n),k);ctx.lineTo(b[0],b[1])}ctx.stroke();ctx.lineCap='butt';ctx.setLineDash([]);return}
  for(let i=1;i<=n;i++){const b=proj(f(t0+(t1-t0)*i/n),k);ctx.globalAlpha=(a[2]+b[2])/2<0?1:.25;ctx.beginPath();ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();a=b}
  ctx.globalAlpha=1;ctx.setLineDash([])}
-function lab(p,t,col,k=1.0,dx=6,dy=-6,bold){const q=proj(p,k);ctx.globalAlpha=q[2]<0?1:.35;ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],3,0,7);ctx.fill();
- ctx.font=(bold?'600 ':'')+'12px system-ui,sans-serif';ctx.fillText(t,q[0]+dx,q[1]+dy);if(TIP[t])HOT.push({x0:q[0]-9,y0:q[1]+Math.min(dy-12,-9),x1:q[0]+dx+ctx.measureText(t).width+3,y1:q[1]+Math.max(dy,0)+4,t,d:TIP[t]});ctx.globalAlpha=1;return q}
-function arcLabel(f,t,txt,col){const q=proj(f(t),1.0);ctx.fillStyle=col;ctx.font='600 12px system-ui,sans-serif';ctx.globalAlpha=(SOLID||q[2]<0)?1:.5;ctx.lineWidth=3;ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--sky');ctx.strokeText(txt,q[0]+5,q[1]-4);ctx.fillText(txt,q[0]+5,q[1]-4);const kk=txt.split(/[ =]/)[0];if(TIP2[kk])HOT.push({x0:q[0]+2,y0:q[1]-19,x1:q[0]+8+ctx.measureText(txt).width,y1:q[1]+3,t:kk,d:TIP2[kk]});ctx.globalAlpha=1}
+function lab(p,t,col,k=1.0,dx=6,dy=-6,bold){const q=proj(p,k);LBL.push(()=>{ctx.globalAlpha=q[2]<0?1:.35;ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],3,0,7);ctx.fill();
+ ctx.font=(bold?'600 ':'')+'12px system-ui,sans-serif';ctx.fillText(t,q[0]+dx,q[1]+dy);if(TIP[t])HOT.push({x0:q[0]-9,y0:q[1]+Math.min(dy-12,-9),x1:q[0]+dx+ctx.measureText(t).width+3,y1:q[1]+Math.max(dy,0)+4,t,d:TIP[t]});ctx.globalAlpha=1});return q}
+function arcLabel(f,t,txt,col){const q=proj(f(t),1.0),sd=SOLID;LBL.push(()=>{ctx.fillStyle=col;ctx.font='600 12px system-ui,sans-serif';ctx.globalAlpha=(sd||q[2]<0)?1:.5;ctx.lineWidth=3;ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--sky');ctx.strokeText(txt,q[0]+5,q[1]-4);ctx.fillText(txt,q[0]+5,q[1]-4);const kk=txt.split(/[ =]/)[0];if(TIP2[kk])HOT.push({x0:q[0]+2,y0:q[1]-19,x1:q[0]+8+ctx.measureText(txt).width,y1:q[1]+3,t:kk,d:TIP2[kk]});ctx.globalAlpha=1})}
 const hms=h=>{h=((h%24)+24)%24;const H=Math.floor(h),m=Math.floor((h-H)*60),s=Math.round(((h-H)*60-m)*60);return`${H}h ${String(m).padStart(2,'0')}m ${String(s%60).padStart(2,'0')}s`};
 const dms=(a,sg)=>{const s=a<0?'−':(sg?'+':''),x=Math.abs(a),d=Math.floor(x),m=Math.floor((x-d)*60),c=Math.round(((x-d)*60-m)*60);return`${s}${d}° ${String(m).padStart(2,'0')}′ ${String(c%60).padStart(2,'0')}″`};
 function draw(){
  const dpr=devicePixelRatio||1,w=innerWidth,hh=innerHeight;if(cv.width!=Math.round(w*dpr)||cv.height!=Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr)}
  ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=hh/2;R=Math.min(w,hh)*.38*S.zoom;
  FG=getComputedStyle(document.body).color;const mut=getComputedStyle(document.body).getPropertyValue('--mut');
- ctx.clearRect(0,0,w,hh);HOT=[];ctx.textBaseline='alphabetic';
+ ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];ctx.textBaseline='alphabetic';
  // horizon disc
  ctx.beginPath();for(let a=0;a<=360;a+=5){const q=proj(scn(0,a,0));a?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}
  ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();
@@ -172,15 +170,15 @@ function draw(){
  // angle arcs
  if(L.arcs){SOLID=1;
   const pt=(kk,aa,bb)=>scn(kk,aa,bb),bgc=getComputedStyle(document.body).getPropertyValue('--sky'),hr=k==1||k==2;
-  const wedge=(f,t0,t1,col)=>{ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n));ctx.lineTo(q[0],q[1])}ctx.closePath();ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1};
+  const wedge=(f,t0,t1,col)=>{ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n));ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.05);gd.addColorStop(0,hexa(col,.05));gd.addColorStop(.6,hexa(col,.26));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()};
   const hi=(f,t0,t1,col,txt)=>{wedge(f,t0,t1,col);line(f,t0,t1,col+'55',13,1.02);line(f,t0,t1,col,4.5,1.02);const q=proj(f(t1),1.02);ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fill();arcLabel(f,(t0+t1)/2,txt,col)};
-  const tk=(f,t,txt)=>{const q=proj(f(t),1.09);ctx.globalAlpha=q[2]<0?1:.4;ctx.font='11px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(txt,q[0]-8,q[1]+4);ctx.fillStyle=COL[k];ctx.fillText(txt,q[0]-8,q[1]+4);ctx.globalAlpha=1};
+  const tk=(f,t,txt)=>{const q=proj(f(t),1.09);LBL.push(()=>{ctx.globalAlpha=q[2]<0?1:.4;ctx.font='11px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(txt,q[0]-8,q[1]+4);ctx.fillStyle=COL[k];ctx.fillText(txt,q[0]-8,q[1]+4);ctx.globalAlpha=1})};
   if(S.tm){
    const L0=n360(280.46+.9856474*T.d),sv=sunVec(T.d),as=n360(deg(Math.atan2(sv[1],sv[0]))),Hs=n360(LST-as),Hm=n360(LST-L0),eot=((L0-as+540)%360)-180,hh2=x=>(x/15).toFixed(2)+'h',eqc=t=>scn(1,t,0);
    line(t=>scn(2,t,0),0,360,COL[2],2.5);line(t=>scn(1,0,t),-90,270,COL[0],2,1,[5,4]);lab(scn(1,0,0),'meridian crossing',COL[0],1,6,14,1);
    const sun=(f,ra,hc)=>{line(t=>scn(1,ra,t),-90,90,'#f5b400',1.2,1,[3,4])};
    if(S.tm==1){hi(eqc,0,LST,CS,`θ = LST = ${hh2(LST)}`)}
-   if(S.tm==2||S.tm==4){line(t=>scn(1,Hs,t),-90,90,'#f5b400',1.5,1,[3,4]);lab(eq2s(sv),'true Sun','#f5b400',1,6,-8,1);if(S.tm==2)hi(eqc,0,Hs,CL,`H☉ = ${hh2(Hs)}  (apparent time = H☉ + 12h)`)}
+   if(S.tm==2||S.tm==4){line(t=>scn(1,Hs,t),-90,90,'#f5b400',1.5,1,[3,4]);drawSun(proj(eq2s(sv)),.8);lab(eq2s(sv),'true Sun','#f5b400',1,6,-8,1);if(S.tm==2)hi(eqc,0,Hs,CL,`H☉ = ${hh2(Hs)}  (apparent time = H☉ + 12h)`)}
    if(S.tm==3||S.tm==4){line(t=>scn(1,Hm,t),-90,90,COL[3],1.5,1,[3,4]);lab(scn(2,L0,0),'mean Sun',COL[3],1,6,14,1);hi(eqc,0,Hm,S.tm==3?CL:CB,`H(mean) = ${hh2(Hm)}  (mean time = H + 12h)`)}
    if(S.tm==4){hi(t=>scn(2,t,0),as,as+eot,CS,`EoT = ${(eot*4).toFixed(1)} min = α(mean) − α(true)`);arcLabel(eqc,Hs/2,`H☉ = ${hh2(Hs)}`,'#f5b400')}
   }else{
@@ -210,14 +208,14 @@ function draw(){
   }
   // origin (0 point) of the active system
   if(!S.tm){const q0=proj(pt(k,0,0)),ORG=['0° = North point','H = 0h: local meridian','RA = 0h: ♈ vernal equinox','λ = 0°: ♈ vernal equinox','l = 0°: Galactic centre'];
-  ctx.globalAlpha=q0[2]<0?1:.5;ctx.strokeStyle=FG;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(q0[0],q0[1],8,0,7);ctx.stroke();
-  ctx.font='600 12px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(ORG[k],q0[0]+12,q0[1]-12);ctx.fillStyle=COL[k];ctx.fillText(ORG[k],q0[0]+12,q0[1]-12);HOT.push({x0:q0[0]-9,y0:q0[1]-28,x1:q0[0]+14+ctx.measureText(ORG[k]).width,y1:q0[1]+9,t:'Zero point',d:ORG[k]+`: the origin of this system. Longitude-like angles are counted from here.`});ctx.globalAlpha=1;}
+  LBL.push(()=>{ctx.globalAlpha=q0[2]<0?1:.5;ctx.strokeStyle=FG;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(q0[0],q0[1],8,0,7);ctx.stroke();
+  ctx.font='600 12px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(ORG[k],q0[0]+12,q0[1]-12);ctx.fillStyle=COL[k];ctx.fillText(ORG[k],q0[0]+12,q0[1]-12);HOT.push({x0:q0[0]-9,y0:q0[1]-28,x1:q0[0]+14+ctx.measureText(ORG[k]).width,y1:q0[1]+9,t:'Zero point',d:ORG[k]+`: the origin of this system. Longitude-like angles are counted from here.`});ctx.globalAlpha=1})}
  }
  SOLID=0;
  
- if(!S.tm){const oq=proj(eq2s(o));ctx.fillStyle='#ff3b6b';ctx.globalAlpha=oq[2]<0?1:.5;ctx.beginPath();ctx.arc(oq[0],oq[1],5.5,0,7);ctx.fill();ctx.strokeStyle=FG;ctx.lineWidth=1.5;ctx.stroke();
- ctx.fillStyle=FG;ctx.font='600 13px system-ui';ctx.fillText(OBJ[S.obj].n,oq[0]+9,oq[1]-8);HOT.push({x0:oq[0]-8,y0:oq[1]-22,x1:oq[0]+12+ctx.measureText(OBJ[S.obj].n).width,y1:oq[1]+8,t:OBJ[S.obj].n,d:`Selected object. Its angles from each zero point are drawn as the bold arcs; hover them for definitions.`});ctx.globalAlpha=1;}
- table(C,o);side()}
+ if(!S.tm){const oq=proj(eq2s(o));ctx.globalAlpha=oq[2]<0?1:.5;drawBody(oq);
+ ctx.globalAlpha=oq[2]<0?1:.7;ctx.font='600 13px system-ui';ctx.lineWidth=3;ctx.strokeStyle='rgba(4,7,18,.85)';ctx.strokeText(OBJ[S.obj].n,oq[0]+12,oq[1]-12);ctx.fillStyle='#fff';ctx.fillText(OBJ[S.obj].n,oq[0]+12,oq[1]-12);HOT.push({x0:oq[0]-8,y0:oq[1]-22,x1:oq[0]+12+ctx.measureText(OBJ[S.obj].n).width,y1:oq[1]+8,t:OBJ[S.obj].n,d:`Selected object. Its angles from each zero point are drawn as the bold arcs; hover them for definitions.`});ctx.globalAlpha=1;}
+ FL();table(C,o);side()}
 function table(C,o){
  let h='<tr><th>System</th><th>Longitude-like</th><th>Latitude-like</th></tr>';
  SYS.forEach((s,i)=>{const [a,b]=C[i],hr=i==1||i==2;
@@ -232,14 +230,11 @@ function table(C,o){
  <tr><td>Culmination altitude</td><td>${cu.toFixed(1)}°</td></tr><tr><td>Rise/set half-arc</td><td>${rs}</td></tr>
  <tr><td>Sun λ / Dec</td><td>${sc[3][0].toFixed(1)}° / ${dms(sc[2][1],1)}</td></tr><tr><td>Obliquity ε</td><td>${EPS}°</td></tr>`}
 function ui(){
- $('sys').innerHTML=SYS.map((s,i)=>`<button data-s="${i}" class="${i==S.sys?'on':''}">${s[0]}</button>`).join('');
- $('def').innerHTML=SYS[S.sys][3];
- $('legend').innerHTML=`<span><i class="k" style="background:${CL}"></i>longitude / H</span><span><i class="k" style="background:${CR}"></i>α (RA)</span><span><i class="k" style="background:${CB}"></i>latitude / Dec / z</span><span><i class="k" style="background:${CS}"></i>LST</span>`+COL.map((c,i)=>`<span><i class="k" style="background:${c}"></i>${['horizon','equator','equator','ecliptic','Gal. plane'][i]}</span>`).filter((_,i)=>i!=2&&i<7).join('');
+  $('legend').innerHTML=`<span><i class="k" style="background:${CL}"></i>longitude / H</span><span><i class="k" style="background:${CR}"></i>α (RA)</span><span><i class="k" style="background:${CB}"></i>latitude / Dec / z</span><span><i class="k" style="background:${CS}"></i>LST</span>`+COL.map((c,i)=>`<span><i class="k" style="background:${c}"></i>${['horizon','equator','equator','ecliptic','Gal. plane'][i]}</span>`).filter((_,i)=>i!=2&&i<7).join('');
  const fx=()=>{$('utO').textContent=hms(UT).slice(0,-4);$('dyO').textContent=T.date.toISOString().slice(5,10);$('laO').textContent=(+$('la').value).toFixed(1)+'°';$('loO').textContent=(+$('lo').value).toFixed(1)+'°';$('craO').textContent=(+$('cra').value).toFixed(2)+'h';$('cdeO').textContent=$('cde').value+'°'};
  ui.fx=fx;fx()}
 $('obj').innerHTML=OBJ.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('');$('obj').value=1;
 $('lay').innerHTML=Object.keys(lays).map(k=>`<label><input type="checkbox" data-l="${k}" ${S.lay[k]?'checked':''}> ${lays[k]}</label>`).join(' ');
-$('sys').onclick=e=>{const s=e.target.dataset.s;if(s==null)return;S.sys=+s;if(S.lesson<5)S.lesson=+s;ui();renderSide();dirty=1};
 $('lay').onchange=e=>{S.lay[e.target.dataset.l]=e.target.checked?1:0;dirty=1};
 $('obj').onchange=e=>{S.obj=+e.target.value;$('cust').style.display=OBJ[S.obj].cus?'block':'none';dirty=1};
 ['ut','dy','la','lo','cra','cde'].forEach(id=>$(id).oninput=()=>{UT=+$('ut').value;DAY=+$('dy').value;upd();ui.fx()});
@@ -273,7 +268,7 @@ const TXT=[
 `<b>Mean solar time</b> uses a fictitious <b>mean Sun</b> that moves at a constant rate along the celestial equator, one circuit per tropical year. Its hour angle plus 12h is the local mean time, and every day is exactly 24h. Greenwich mean time is Universal Time (UT), and time zones set civil time from standard meridians. The mean Sun's RA equals the Sun's mean longitude L.`,
 `The <b>equation of time</b> is apparent minus mean solar time, which equals α(mean Sun) − α(true Sun). It reaches about +16 min in early November and −14 min in mid February, and is zero around 15 April, 13 June, 1 September and 25 December. Two effects add up: the tilt of the ecliptic (two cycles per year) and the eccentricity of Earth's orbit (one cycle per year). The chart shows the year; the dot is the selected date.`];
 const FM=['sin h = sin φ sin δ + cos φ cos δ cos H<br>z = 90° − h','H = LST − α<br>H = 15° per sidereal hour','α measured from ♈, eastward<br>LST = α + H','tan α = cos ε tan λ (for β = 0)<br>ε = 23.44°','l = 0° → Galactic centre<br>b = +90° → north galactic pole','LST = GMST + λ_east<br>GMST ≈ 280.46° + 360.9856° · d','Apparent solar time = H☉ + 12h','Mean solar time = H(mean Sun) + 12h<br>EoT = apparent − mean','EoT = α(mean Sun) − α(true Sun)<br>1° = 4 min of time'];
-function setLesson(i){S.lesson=i;if(i<5){S.sys=LES[i][1];S.tm=0;ui()}else S.tm=i-4;renderTM();renderSide();dirty=1}
+function setLesson(i){S.lesson=i;if(i<5){S.sys=LES[i][1];S.tm=0;ui()}else S.tm=i-4;renderSide();dirty=1}
 function renderSide(){const g=(a,b)=>LES.slice(a,b).map((l,j)=>`<button data-i="${a+j}" class="${a+j==S.lesson?'on':''}">${l[0]}</button>`).join('');
  $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5)+'<div class="gl">Time</div>'+g(5,9);
  $('card').innerHTML=`<b>${LES[S.lesson][0]}</b><p>${TXT[S.lesson]}</p><div class="fm">${FM[S.lesson]}</div><div id="live"></div><canvas id="pv" width="600" height="360"></canvas>`}
@@ -308,7 +303,27 @@ function side(){const i=S.lesson,C=coords(objVec(S.obj)),d=T.d,L=n360(280.46+.98
   c.beginPath();for(let dd=0;dd<=364;dd+=3){const X=x0+(x1-x0)*dd/364,Y=my-E(dd)*sc;dd?c.lineTo(X,Y):c.moveTo(X,Y)}c.strokeStyle=CL;c.lineWidth=2.5;c.stroke();
   const X=x0+(x1-x0)*DAY/364,Y=my-eot*4*sc;ln(X,y1,[X,y0],mu,1,[2,3]);dot(X,Y,'#ff3b6b',5);tx(m+' min',Math.min(X+8,250),Y-8,CB)}
 }
-function renderTM(){$('tms').innerHTML=['Off','Sidereal θ','Apparent solar','Mean solar','Equation of time'].map((n,i)=>`<button data-t="${i}" class="${i==S.tm?'on':''}">${n}</button>`).join('')}
-$('tms').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tm=+t;S.lesson=t==0?S.sys:4+(+t);renderTM();renderSide();dirty=1};
-upd();ui();renderSide();renderTM();requestAnimationFrame(loop);
+const STC={Sirius:['#cfe0ff',-1.46],Vega:['#d4e3ff',.03],Polaris:['#fff1d0',1.98],Betelgeuse:['#ff8c52',.5],Arcturus:['#ffb56e',-.05],Antares:['#ff6e42',1.06],Rigel:['#a9c4ff',.13],Altair:['#e9f0ff',.77],Aldebaran:['#ffa862',.85],Capella:['#ffe9ac',.08],Deneb:['#e4ecff',1.25],Spica:['#a8c0ff',.97],Regulus:['#bcd0ff',1.35],Procyon:['#fff3d8',.34],Fomalhaut:['#e4ecff',1.16]},SP={};
+const hexa=(h,a)=>{const n=parseInt(h.slice(1),16);return`rgba(${n>>16},${n>>8&255},${n&255},${a})`};
+function mk(n,f){const c=document.createElement('canvas');c.width=c.height=n;f(c.getContext('2d'),n/2,n);return c}
+function sunSprite(){return SP.sun||(SP.sun=mk(400,(g,m,n)=>{
+ const r=g.createRadialGradient(m,m,n*.06,m,m,m);r.addColorStop(0,'rgba(255,235,170,.95)');r.addColorStop(.2,'rgba(255,195,95,.5)');r.addColorStop(.5,'rgba(255,145,55,.15)');r.addColorStop(1,'rgba(255,120,40,0)');g.fillStyle=r;g.fillRect(0,0,n,n);
+ g.save();g.translate(m,m);for(let i=0;i<40;i++){const a=i/40*Math.PI*2+Math.sin(i*7.3)*.06,L=m*(.5+.45*Math.abs(Math.sin(i*12.99)));g.save();g.rotate(a);const gr=g.createLinearGradient(0,0,L,0);gr.addColorStop(.2,'rgba(255,225,160,.32)');gr.addColorStop(1,'rgba(255,200,120,0)');g.fillStyle=gr;g.beginPath();g.moveTo(0,-3.2);g.lineTo(L,0);g.lineTo(0,3.2);g.fill();g.restore()}g.restore();
+ const d=n*.16;let s=7;const rnd=()=>(s=(s*16807)%2147483647)/2147483647;
+ const dg=g.createRadialGradient(m,m,0,m,m,d);dg.addColorStop(0,'#fffdf0');dg.addColorStop(.5,'#ffe9a0');dg.addColorStop(.82,'#ffbd4f');dg.addColorStop(1,'#e8731a');
+ g.save();g.beginPath();g.arc(m,m,d,0,7);g.clip();g.fillStyle=dg;g.fillRect(m-d,m-d,2*d,2*d);
+ for(let i=0;i<1400;i++){const a=rnd()*7,q=Math.sqrt(rnd())*d,x=m+q*Math.cos(a),y=m+q*Math.sin(a),rr=1.2+rnd()*2.6;g.fillStyle=rnd()<.5?'rgba(255,248,205,.16)':'rgba(190,85,15,.10)';g.beginPath();g.arc(x,y,rr,0,7);g.fill()}
+ [[-.35,.2,5],[.3,-.28,4],[.05,.45,3]].forEach(([u,v,rr])=>{const X=m+u*d,Y=m+v*d,sg=g.createRadialGradient(X,Y,0,X,Y,rr*1.7);sg.addColorStop(0,'rgba(50,15,0,.75)');sg.addColorStop(.5,'rgba(110,45,5,.45)');sg.addColorStop(1,'rgba(120,50,10,0)');g.fillStyle=sg;g.beginPath();g.arc(X,Y,rr*1.7,0,7);g.fill()});
+ g.restore();g.strokeStyle='rgba(255,130,60,.35)';g.lineWidth=2;g.beginPath();g.arc(m,m,d,0,7);g.stroke()}))}
+function starSprite(col){return SP[col]||(SP[col]=mk(256,(g,m,n)=>{
+ const r=g.createRadialGradient(m,m,0,m,m,m);r.addColorStop(0,hexa(col,.55));r.addColorStop(.12,hexa(col,.28));r.addColorStop(.4,hexa(col,.07));r.addColorStop(1,hexa(col,0));g.fillStyle=r;g.fillRect(0,0,n,n);
+ [[1,0],[0,1]].forEach(([x,y])=>{const gr=g.createLinearGradient(m-x*m,m-y*m,m+x*m,m+y*m);gr.addColorStop(0,hexa(col,0));gr.addColorStop(.5,'rgba(255,255,255,.85)');gr.addColorStop(1,hexa(col,0));g.fillStyle=gr;g.fillRect(x?0:m-1,y?0:m-1,x?n:2,y?n:2)});
+ [Math.PI/4,-Math.PI/4].forEach(a=>{g.save();g.translate(m,m);g.rotate(a);const gr=g.createLinearGradient(-m*.55,0,m*.55,0);gr.addColorStop(0,hexa(col,0));gr.addColorStop(.5,'rgba(255,255,255,.35)');gr.addColorStop(1,hexa(col,0));g.fillStyle=gr;g.fillRect(-m*.55,-.6,m*1.1,1.2);g.restore()});
+ const c=g.createRadialGradient(m,m,0,m,m,m*.13);c.addColorStop(0,'#fff');c.addColorStop(.5,'#fff');c.addColorStop(1,hexa(col,0));g.fillStyle=c;g.beginPath();g.arc(m,m,m*.13,0,7);g.fill()}))}
+function glowBack(x,y,r){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(4,7,18,.9)');g.addColorStop(.55,'rgba(4,7,18,.6)');g.addColorStop(1,'rgba(4,7,18,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()}
+function drawSun(q,sc=1){const s=210*sc;glowBack(q[0],q[1],s*.55);ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(sunSprite(),q[0]-s/2,q[1]-s/2,s,s);ctx.restore()}
+function drawStar(q,col,sc=1){const s=170*sc;glowBack(q[0],q[1],s*.45);ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(starSprite(col),q[0]-s/2,q[1]-s/2,s,s);ctx.restore()}
+function FL(){const a=LBL;LBL=[];a.forEach(f=>f())}
+function drawBody(q){const i=S.obj,o=OBJ[i];if(o.sun)return drawSun(q);if(i<ST.length){const t=STC[o.n]||['#ffffff',1];return drawStar(q,t[0],Math.max(.6,Math.min(1.5,1.25-.28*t[1])))}if(o.gal)return drawStar(q,'#ffd9a0',1.4);drawStar(q,'#ffffff',1)}
+upd();ui();renderSide();requestAnimationFrame(loop);
 </script></body></html>
