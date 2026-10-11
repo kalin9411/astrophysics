@@ -64,6 +64,7 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 <div class="seg" style="margin-top:6px"><button class="b" id="play">▶ Play</button>
 <select id="spd"><option value="600">10 min/s</option><option value="3600" selected>1 h/s</option><option value="21600">6 h/s</option><option value="86400">1 d/s</option></select>
 <button class="b" data-d="78">Mar equinox</button><button class="b" data-d="171">Jun solstice</button><button class="b" data-d="265">Sep equinox</button><button class="b" data-d="354">Dec solstice</button></div></div>
+<div class="box"><b>Time system</b> <span class="def">(independent of the coordinate system)</span><div class="seg" id="tms" style="margin-top:6px"></div></div>
 <div class="box"><b>Object</b> <select id="obj"></select>
 <div id="cust" style="display:none"><label class="r">RA<input type="range" id="cra" min="0" max="24" step="0.01" value="12"><output id="craO"></output></label>
 <label class="r">Dec<input type="range" id="cde" min="-90" max="90" step="0.5" value="20"><output id="cdeO"></output></label></div></div>
@@ -81,7 +82,7 @@ const SYS=[
 ['Equatorial RA','RA','Dec','<b>Plane:</b> celestial equator. <b>Origin:</b> vernal equinox ♈, where the Sun crosses the equator going north. <b>Right ascension</b> runs eastward, fixed to the stars. LST = RA + H, so the sidereal time is the RA on the meridian.'],
 ['Ecliptic','λ','β','<b>Plane:</b> ecliptic, the Sun’s yearly path, tilted 23.44° to the equator. <b>Origin:</b> vernal equinox ♈. <b>Longitude λ</b> runs eastward; <b>latitude β</b> is measured from the ecliptic. The Sun always has β = 0.'],
 ['Galactic','l','b','<b>Plane:</b> mid-plane of the Milky Way. <b>Origin:</b> Galactic centre (Sgr A*). <b>Longitude l</b> runs from the centre toward increasing RA; <b>latitude b</b> is measured from the plane.']];
-const COL=['#2e9e5b','#e08a1e','#d9534f','#c2a000','#9b59b6'],CL='#e8742a',CB='#17a2b8',CS='#a05cd6';
+const COL=['#2e9e5b','#e08a1e','#d9534f','#c2a000','#9b59b6'],CL='#e8742a',CB='#17a2b8',CS='#a05cd6',CR='#e53935';
 const ST=[['Sirius',6.7525,-16.716],['Vega',18.6156,38.784],['Polaris',2.5303,89.264],['Betelgeuse',5.9195,7.407],['Arcturus',14.261,19.182],['Antares',16.4901,-26.432],['Rigel',5.2423,-8.202],['Altair',19.8464,8.868],['Aldebaran',4.5987,16.509],['Capella',5.2782,45.998],['Deneb',20.6905,45.28],['Spica',13.4199,-11.161],['Regulus',10.1395,11.967],['Procyon',7.655,5.225],['Fomalhaut',22.9608,-29.622]];
 const OBJ=[...ST.map(s=>({n:s[0],ra:s[1]*15,de:s[2]})),{n:'Sun',sun:1},{n:'Galactic centre',gal:[0,0]},{n:'Custom RA/Dec',cus:1}];
 const TIP={'N':`North point (Az 0°): where the horizon meets the meridian on the side of the north celestial pole.`,'E':`East point (Az 90°): the Sun rises here at the equinoxes.`,'S':`South point (Az 180°): where the upper meridian meets the horizon. Objects culminate (reach maximum altitude) over it.`,'W':`West point (Az 270°): the Sun sets here at the equinoxes.`,
@@ -91,14 +92,14 @@ const TIP={'N':`North point (Az 0°): where the horizon meets the meridian on th
 '♎ autumnal equinox':`Autumnal equinox ♎: opposite ♈ (RA 12h, λ = 180°). The Sun is here around 23 September, crossing the equator heading south.`,
 'June solstice':`Summer solstice point (λ = 90°, RA 6h, δ = +ε = +23.44°): the northernmost point of the Sun's path, around 21 June.`,'Dec solstice':`Winter solstice point (λ = 270°, RA 18h, δ = −ε): the southernmost point of the Sun's path, around 21 December.`,
 'Gal. centre':`Galactic centre (Sgr A*): zero point of galactic longitude (l = 0°, b = 0°). RA ≈ 17h 46m, Dec ≈ −28.9°.`,'NGP':`North galactic pole (b = +90°): RA ≈ 12h 51m, Dec ≈ +27.1°.`,'N ecl. pole':`North ecliptic pole (β = +90°): pole of the ecliptic system, ε = 23.44° away from the NCP.`,
-'mean Sun':`Mean Sun: a fictitious Sun moving uniformly along the celestial equator. Its hour angle + 12h is mean solar time, and its RA equals the mean longitude L.`},
+'true Sun':`True (apparent) Sun: the real Sun. Shown with its hour circle, which meets the equator at its hour angle H☉. H☉ + 12h is apparent solar time (sundial time).`,'meridian crossing':`Where the local meridian crosses the celestial equator: the zero point of hour angle.`,'mean Sun':`Mean Sun: a fictitious Sun moving uniformly along the celestial equator. Its hour angle + 12h is mean solar time, and its RA equals the mean longitude L.`},
 TIP2={'A':`Azimuth A: angle along the horizon from North toward East, 0–360°.`,'h':`Altitude h: angle above the horizon, −90° to +90°. Zenith distance z = 90° − h.`,'z':`Zenith distance z = 90° − h: angle from the zenith down to the object.`,
 'H':`Hour angle H: angle along the equator from the meridian westward to the object's hour circle. H = θ − α, and 15° = 1h.`,'δ':`Declination δ: angle north (+) or south (−) of the celestial equator.`,'α':`Right ascension α: angle along the equator from ♈ eastward to the object's hour circle, 0–24h.`,
 'θ':`Local sidereal time θ (LST): hour angle of the vernal equinox, equal to the RA now crossing your meridian. θ = α + H.`,'λ':`Ecliptic longitude λ: angle along the ecliptic from ♈ eastward.`,'β':`Ecliptic latitude β: angle north or south of the ecliptic.`,
-'l':`Galactic longitude l: angle along the galactic plane from the Galactic centre.`,'b':`Galactic latitude b: angle north or south of the galactic plane.`,'φ':`Observer's latitude φ: equals the altitude of the north celestial pole above your horizon.`,'ε':`Obliquity ε = 23.44°: tilt of the ecliptic to the celestial equator, caused by Earth's axial tilt.`};
+'l':`Galactic longitude l: angle along the galactic plane from the Galactic centre.`,'b':`Galactic latitude b: angle north or south of the galactic plane.`,'φ':`Observer's latitude φ: equals the altitude of the north celestial pole above your horizon.`,'ε':`Obliquity ε = 23.44°: tilt of the ecliptic to the celestial equator, caused by Earth's axial tilt.`,'H☉':`Hour angle of the true Sun, measured from the meridian westward. Apparent solar time = H☉ + 12h.`,'H(mean)':`Hour angle of the mean Sun. Local mean time = H + 12h.`,'EoT':`Equation of time = apparent − mean solar time = α(mean Sun) − α(true Sun). 1° = 4 minutes.`};
 function showTip(x,y){let best=null,bd=1e9;for(const h of HOT)if(x>=h.x0&&x<=h.x1&&y>=h.y0&&y<=h.y1){const d=Math.hypot((h.x0+h.x1)/2-x,(h.y0+h.y1)/2-y);if(d<bd){bd=d;best=h}}
  const t=$('tip');if(!best){t.style.display='none';return}t.innerHTML=`<b>${best.t}</b><br>${best.d}`;t.style.display='block';t.style.left=Math.min(x+14,innerWidth-t.offsetWidth-8)+'px';t.style.top=Math.min(y+14,innerHeight-t.offsetHeight-8)+'px'}
-let S={zoom:1,lesson:2,sys:2,yaw:0,pitch:.38,obj:1,lay:{hor:1,mer:1,equ:1,ecl:1,galp:0,grid:1,arcs:1,names:1},play:0};
+let S={tm:0,zoom:1,lesson:2,sys:2,yaw:0,pitch:.38,obj:1,lay:{hor:1,mer:1,equ:1,ecl:1,galp:0,grid:1,arcs:1,names:1},play:0};
 const lays={hor:'Horizon',mer:'Local meridian',equ:'Celestial equator',ecl:'Ecliptic',galp:'Galactic plane',grid:'System grid',arcs:'Angle arcs'};
 let LST,PHI,dirty=1,UT=21,DAY=78;
 const sph=(a,b)=>{a*=D;b*=D;return[Math.cos(b)*Math.cos(a),Math.cos(b)*Math.sin(a),Math.sin(b)]};
@@ -174,6 +175,15 @@ function draw(){
   const wedge=(f,t0,t1,col)=>{ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n));ctx.lineTo(q[0],q[1])}ctx.closePath();ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1};
   const hi=(f,t0,t1,col,txt)=>{wedge(f,t0,t1,col);line(f,t0,t1,col+'55',13,1.02);line(f,t0,t1,col,4.5,1.02);const q=proj(f(t1),1.02);ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fill();arcLabel(f,(t0+t1)/2,txt,col)};
   const tk=(f,t,txt)=>{const q=proj(f(t),1.09);ctx.globalAlpha=q[2]<0?1:.4;ctx.font='11px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(txt,q[0]-8,q[1]+4);ctx.fillStyle=COL[k];ctx.fillText(txt,q[0]-8,q[1]+4);ctx.globalAlpha=1};
+  if(S.tm){
+   const L0=n360(280.46+.9856474*T.d),sv=sunVec(T.d),as=n360(deg(Math.atan2(sv[1],sv[0]))),Hs=n360(LST-as),Hm=n360(LST-L0),eot=((L0-as+540)%360)-180,hh2=x=>(x/15).toFixed(2)+'h',eqc=t=>scn(1,t,0);
+   line(t=>scn(2,t,0),0,360,COL[2],2.5);line(t=>scn(1,0,t),-90,270,COL[0],2,1,[5,4]);lab(scn(1,0,0),'meridian crossing',COL[0],1,6,14,1);
+   const sun=(f,ra,hc)=>{line(t=>scn(1,ra,t),-90,90,'#f5b400',1.2,1,[3,4])};
+   if(S.tm==1){hi(eqc,0,LST,CS,`θ = LST = ${hh2(LST)}`)}
+   if(S.tm==2||S.tm==4){line(t=>scn(1,Hs,t),-90,90,'#f5b400',1.5,1,[3,4]);lab(eq2s(sv),'true Sun','#f5b400',1,6,-8,1);if(S.tm==2)hi(eqc,0,Hs,CL,`H☉ = ${hh2(Hs)}  (apparent time = H☉ + 12h)`)}
+   if(S.tm==3||S.tm==4){line(t=>scn(1,Hm,t),-90,90,COL[3],1.5,1,[3,4]);lab(scn(2,L0,0),'mean Sun',COL[3],1,6,14,1);hi(eqc,0,Hm,S.tm==3?CL:CB,`H(mean) = ${hh2(Hm)}  (mean time = H + 12h)`)}
+   if(S.tm==4){hi(t=>scn(2,t,0),as,as+eot,CS,`EoT = ${(eot*4).toFixed(1)} min = α(mean) − α(true)`);arcLabel(eqc,Hs/2,`H☉ = ${hh2(Hs)}`,'#f5b400')}
+  }else{
   // angle scale along the plane and the object's meridian
   for(let t=0;t<360;t+=30)tk(u=>pt(k,u,0),t,hr?(t/15)+'h':t+'°');
   [-60,-30,30,60].forEach(t=>tk(u=>pt(k,a,u),t,t+'°'));
@@ -188,24 +198,25 @@ function draw(){
    hi(t=>pt(k,a,t),0,b,CB,`${nm[1]} = ${b.toFixed(1)}° ${nm[3]}`);
   }else{
    const de=C[1][1],H=C[1][0],ra=C[2][0];
-   if(k==1){line(t=>pt(2,t,0),0,ra,CS,2.5,1.08);arcLabel(t=>pt(2,t,0),ra/2,`α = ${hrs(ra)}`,CS)}
-   else{line(t=>pt(1,t,0),0,H,CS,2.5,1.08);arcLabel(t=>pt(1,t,0),H/2,`H = ${hrs(H)}`,CS)}
+   if(k==1){line(t=>pt(2,t,0),0,ra,CR,2.5,1.08);arcLabel(t=>pt(2,t,0),ra/2,`α = ${hrs(ra)}`,CR)}
+   else{line(t=>pt(1,t,0),0,H,CL,2.5,1.08);arcLabel(t=>pt(1,t,0),H/2,`H = ${hrs(H)}`,CL)}
    line(t=>pt(1,t,0),0,LST,CS,2,1.15,[6,4]);arcLabel(t=>pt(1,t,0),LST/2,`θ = LST = ${hrs(LST)} (α + H)`,CS);
    if(k==1)hi(t=>pt(1,t,0),0,H,CL,`H = ${hrs(H)} from meridian toward W`);
-   else hi(t=>pt(2,t,0),0,ra,CL,`α = ${hrs(ra)} (RA) from ♈ toward E`);
+   else hi(t=>pt(2,t,0),0,ra,CR,`α = ${hrs(ra)} (RA) from ♈ toward E`);
    hi(t=>pt(1,H,t),0,de,CB,`δ = ${de.toFixed(1)}° (Dec) from equator`);
   }
   if(k<3){line(t=>scn(0,0,t),0,PHI,COL[0],3,1.02);arcLabel(t=>scn(0,0,t),PHI/2,`φ = ${PHI.toFixed(1)}° latitude`,COL[0])}
   if(k==3){line(t=>scn(2,270,t),90,90-EPS,COL[3],3,1.02);arcLabel(t=>scn(2,270,t),90-EPS/2,`ε = ${EPS}° obliquity`,COL[3])}
+  }
   // origin (0 point) of the active system
-  const q0=proj(pt(k,0,0)),ORG=['0° = North point','H = 0h: local meridian','RA = 0h: ♈ vernal equinox','λ = 0°: ♈ vernal equinox','l = 0°: Galactic centre'];
+  if(!S.tm){const q0=proj(pt(k,0,0)),ORG=['0° = North point','H = 0h: local meridian','RA = 0h: ♈ vernal equinox','λ = 0°: ♈ vernal equinox','l = 0°: Galactic centre'];
   ctx.globalAlpha=q0[2]<0?1:.5;ctx.strokeStyle=FG;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(q0[0],q0[1],8,0,7);ctx.stroke();
-  ctx.font='600 12px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(ORG[k],q0[0]+12,q0[1]-12);ctx.fillStyle=COL[k];ctx.fillText(ORG[k],q0[0]+12,q0[1]-12);HOT.push({x0:q0[0]-9,y0:q0[1]-28,x1:q0[0]+14+ctx.measureText(ORG[k]).width,y1:q0[1]+9,t:'Zero point',d:ORG[k]+`: the origin of this system. Longitude-like angles are counted from here.`});ctx.globalAlpha=1;
+  ctx.font='600 12px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(ORG[k],q0[0]+12,q0[1]-12);ctx.fillStyle=COL[k];ctx.fillText(ORG[k],q0[0]+12,q0[1]-12);HOT.push({x0:q0[0]-9,y0:q0[1]-28,x1:q0[0]+14+ctx.measureText(ORG[k]).width,y1:q0[1]+9,t:'Zero point',d:ORG[k]+`: the origin of this system. Longitude-like angles are counted from here.`});ctx.globalAlpha=1;}
  }
  SOLID=0;
- if(S.lesson>=7){const Lm=n360(280.46+.9856474*T.d);lab(scn(2,Lm,0),'mean Sun',COL[3],1,6,14,1)}
- const oq=proj(eq2s(o));ctx.fillStyle='#ff3b6b';ctx.globalAlpha=oq[2]<0?1:.5;ctx.beginPath();ctx.arc(oq[0],oq[1],5.5,0,7);ctx.fill();ctx.strokeStyle=FG;ctx.lineWidth=1.5;ctx.stroke();
- ctx.fillStyle=FG;ctx.font='600 13px system-ui';ctx.fillText(OBJ[S.obj].n,oq[0]+9,oq[1]-8);HOT.push({x0:oq[0]-8,y0:oq[1]-22,x1:oq[0]+12+ctx.measureText(OBJ[S.obj].n).width,y1:oq[1]+8,t:OBJ[S.obj].n,d:`Selected object. Its angles from each zero point are drawn as the bold arcs; hover them for definitions.`});ctx.globalAlpha=1;
+ 
+ if(!S.tm){const oq=proj(eq2s(o));ctx.fillStyle='#ff3b6b';ctx.globalAlpha=oq[2]<0?1:.5;ctx.beginPath();ctx.arc(oq[0],oq[1],5.5,0,7);ctx.fill();ctx.strokeStyle=FG;ctx.lineWidth=1.5;ctx.stroke();
+ ctx.fillStyle=FG;ctx.font='600 13px system-ui';ctx.fillText(OBJ[S.obj].n,oq[0]+9,oq[1]-8);HOT.push({x0:oq[0]-8,y0:oq[1]-22,x1:oq[0]+12+ctx.measureText(OBJ[S.obj].n).width,y1:oq[1]+8,t:OBJ[S.obj].n,d:`Selected object. Its angles from each zero point are drawn as the bold arcs; hover them for definitions.`});ctx.globalAlpha=1;}
  table(C,o);side()}
 function table(C,o){
  let h='<tr><th>System</th><th>Longitude-like</th><th>Latitude-like</th></tr>';
@@ -223,7 +234,7 @@ function table(C,o){
 function ui(){
  $('sys').innerHTML=SYS.map((s,i)=>`<button data-s="${i}" class="${i==S.sys?'on':''}">${s[0]}</button>`).join('');
  $('def').innerHTML=SYS[S.sys][3];
- $('legend').innerHTML=`<span><i class="k" style="background:${CL}"></i>longitude / H / RA</span><span><i class="k" style="background:${CB}"></i>latitude / Dec / z</span><span><i class="k" style="background:${CS}"></i>LST</span>`+COL.map((c,i)=>`<span><i class="k" style="background:${c}"></i>${['horizon','equator','equator','ecliptic','Gal. plane'][i]}</span>`).filter((_,i)=>i!=2&&i<7).join('');
+ $('legend').innerHTML=`<span><i class="k" style="background:${CL}"></i>longitude / H</span><span><i class="k" style="background:${CR}"></i>α (RA)</span><span><i class="k" style="background:${CB}"></i>latitude / Dec / z</span><span><i class="k" style="background:${CS}"></i>LST</span>`+COL.map((c,i)=>`<span><i class="k" style="background:${c}"></i>${['horizon','equator','equator','ecliptic','Gal. plane'][i]}</span>`).filter((_,i)=>i!=2&&i<7).join('');
  const fx=()=>{$('utO').textContent=hms(UT).slice(0,-4);$('dyO').textContent=T.date.toISOString().slice(5,10);$('laO').textContent=(+$('la').value).toFixed(1)+'°';$('loO').textContent=(+$('lo').value).toFixed(1)+'°';$('craO').textContent=(+$('cra').value).toFixed(2)+'h';$('cdeO').textContent=$('cde').value+'°'};
  ui.fx=fx;fx()}
 $('obj').innerHTML=OBJ.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('');$('obj').value=1;
@@ -262,7 +273,7 @@ const TXT=[
 `<b>Mean solar time</b> uses a fictitious <b>mean Sun</b> that moves at a constant rate along the celestial equator, one circuit per tropical year. Its hour angle plus 12h is the local mean time, and every day is exactly 24h. Greenwich mean time is Universal Time (UT), and time zones set civil time from standard meridians. The mean Sun's RA equals the Sun's mean longitude L.`,
 `The <b>equation of time</b> is apparent minus mean solar time, which equals α(mean Sun) − α(true Sun). It reaches about +16 min in early November and −14 min in mid February, and is zero around 15 April, 13 June, 1 September and 25 December. Two effects add up: the tilt of the ecliptic (two cycles per year) and the eccentricity of Earth's orbit (one cycle per year). The chart shows the year; the dot is the selected date.`];
 const FM=['sin h = sin φ sin δ + cos φ cos δ cos H<br>z = 90° − h','H = LST − α<br>H = 15° per sidereal hour','α measured from ♈, eastward<br>LST = α + H','tan α = cos ε tan λ (for β = 0)<br>ε = 23.44°','l = 0° → Galactic centre<br>b = +90° → north galactic pole','LST = GMST + λ_east<br>GMST ≈ 280.46° + 360.9856° · d','Apparent solar time = H☉ + 12h','Mean solar time = H(mean Sun) + 12h<br>EoT = apparent − mean','EoT = α(mean Sun) − α(true Sun)<br>1° = 4 min of time'];
-function setLesson(i){S.lesson=i;const l=LES[i];S.sys=l[1];if(l[2]!=null){S.obj=l[2];$('obj').value=l[2];$('cust').style.display='none'}ui();renderSide();dirty=1}
+function setLesson(i){S.lesson=i;if(i<5){S.sys=LES[i][1];S.tm=0;ui()}else S.tm=i-4;renderTM();renderSide();dirty=1}
 function renderSide(){const g=(a,b)=>LES.slice(a,b).map((l,j)=>`<button data-i="${a+j}" class="${a+j==S.lesson?'on':''}">${l[0]}</button>`).join('');
  $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5)+'<div class="gl">Time</div>'+g(5,9);
  $('card').innerHTML=`<b>${LES[S.lesson][0]}</b><p>${TXT[S.lesson]}</p><div class="fm">${FM[S.lesson]}</div><div id="live"></div><canvas id="pv" width="600" height="360"></canvas>`}
@@ -297,5 +308,7 @@ function side(){const i=S.lesson,C=coords(objVec(S.obj)),d=T.d,L=n360(280.46+.98
   c.beginPath();for(let dd=0;dd<=364;dd+=3){const X=x0+(x1-x0)*dd/364,Y=my-E(dd)*sc;dd?c.lineTo(X,Y):c.moveTo(X,Y)}c.strokeStyle=CL;c.lineWidth=2.5;c.stroke();
   const X=x0+(x1-x0)*DAY/364,Y=my-eot*4*sc;ln(X,y1,[X,y0],mu,1,[2,3]);dot(X,Y,'#ff3b6b',5);tx(m+' min',Math.min(X+8,250),Y-8,CB)}
 }
-upd();ui();renderSide();requestAnimationFrame(loop);
+function renderTM(){$('tms').innerHTML=['Off','Sidereal θ','Apparent solar','Mean solar','Equation of time'].map((n,i)=>`<button data-t="${i}" class="${i==S.tm?'on':''}">${n}</button>`).join('')}
+$('tms').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tm=+t;S.lesson=t==0?S.sys:4+(+t);renderTM();renderSide();dirty=1};
+upd();ui();renderSide();renderTM();requestAnimationFrame(loop);
 </script></body></html>
