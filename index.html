@@ -46,6 +46,7 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 #legend{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);left:50%;transform:translateX(-50%);z-index:2;margin:0;max-width:90vw;justify-content:center;background:color-mix(in srgb,var(--pan) 85%,transparent)}
 @media(max-width:1000px){aside,#ctl{width:min(330px,calc(100vw - 20px))}}
 #tip{position:fixed;z-index:6;pointer-events:none;max-width:280px;background:var(--pan);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none}
+.ssn{display:grid;gap:6px;margin-top:8px}.ssn button{font:inherit;text-align:left;border:1px solid var(--bd);background:var(--bg);color:var(--fg);padding:9px 11px;border-radius:8px;cursor:pointer}.ssn button b{display:block;font-size:15px}.ssn button small{font-weight:400;color:var(--mut);font-size:12px}.ssn button span{display:block;font-size:12px;color:var(--mut);margin-top:4px;line-height:1.45}.ssn button.on{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac);background:color-mix(in srgb,var(--ac) 12%,var(--bg))}
 </style></head><body>
 <h1>Celestial Sphere Lab</h1>
 <div class="sub">Drag to rotate · scroll to zoom · choose the object in the right panel Everything is drawn for an observer at the centre.</div>
@@ -62,7 +63,8 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 <label class="r">Longitude<input type="range" id="lo" min="-180" max="180" step="0.5" value="23.3"><output id="loO"></output></label>
 <div class="seg" style="margin-top:6px"><button class="b" id="play">▶ Play</button>
 <select id="spd"><option value="600">10 min/s</option><option value="3600" selected>1 h/s</option><option value="21600">6 h/s</option><option value="86400">1 d/s</option></select>
-<button class="b" data-d="78">Mar equinox</button><button class="b" data-d="171">Jun solstice</button><button class="b" data-d="265">Sep equinox</button><button class="b" data-d="354">Dec solstice</button></div></div>
+</div></div>
+<div class="box"><b>Equinoxes &amp; solstices</b><div class="def" style="margin:4px 0 0">Jump to the date. At local apparent noon H☉ = 0, so LST = α☉ and GMST = α☉ − λ<sub>obs</sub> (λ<sub>obs</sub> = your east longitude). Values are exact at the equinox/solstice instant, approximate on the day.</div><div class="ssn" id="ssn"></div></div>
 <div class="box"><b>Object</b> <select id="obj"></select>
 <div id="cust" style="display:none"><label class="r">RA<input type="range" id="cra" min="0" max="24" step="0.01" value="12"><output id="craO"></output></label>
 <label class="r">Dec<input type="range" id="cde" min="-90" max="90" step="0.5" value="20"><output id="cdeO"></output></label></div></div>
@@ -97,9 +99,10 @@ TIP2={'A':`Azimuth A: angle along the horizon from North toward East, 0–360°.
 'l':`Galactic longitude l: angle along the galactic plane from the Galactic centre.`,'b':`Galactic latitude b: angle north or south of the galactic plane.`,'φ':`Observer's latitude φ: equals the altitude of the north celestial pole above your horizon.`,'ε':`Obliquity ε = 23.44°: tilt of the ecliptic to the celestial equator, caused by Earth's axial tilt.`,'H☉':`Hour angle of the true Sun, measured from the meridian westward. Apparent solar time = H☉ + 12h.`,'H(mean)':`Hour angle of the mean Sun. Local mean time = H + 12h.`,'EoT':`Equation of time = apparent − mean solar time = α(mean Sun) − α(true Sun). 1° = 4 minutes.`};
 function showTip(x,y){let best=null,bd=1e9;for(const h of HOT)if(x>=h.x0&&x<=h.x1&&y>=h.y0&&y<=h.y1){const d=Math.hypot((h.x0+h.x1)/2-x,(h.y0+h.y1)/2-y);if(d<bd){bd=d;best=h}}
  const t=$('tip');if(!best){t.style.display='none';return}t.innerHTML=`<b>${best.t}</b><br>${best.d}`;t.style.display='block';t.style.left=Math.min(x+14,innerWidth-t.offsetWidth-8)+'px';t.style.top=Math.min(y+14,innerHeight-t.offsetHeight-8)+'px'}
-let S={tm:0,zoom:1,lesson:2,sys:2,yaw:0,pitch:.38,obj:1,lay:{hor:1,mer:1,equ:1,ecl:1,galp:0,grid:1,arcs:1,names:1},play:0};
+let S={tm:0,zoom:1,lesson:2,sys:2,yaw:0,pitch:.38,obj:ST.length,lay:{hor:1,mer:1,equ:1,ecl:1,galp:0,grid:1,arcs:1,names:1},play:0};
 const lays={hor:'Horizon',mer:'Local meridian',equ:'Celestial equator',ecl:'Ecliptic',galp:'Galactic plane',grid:'System grid',arcs:'Angle arcs'};
-let LST,PHI,dirty=1,UT=21,DAY=78;
+const NOW=new Date(),YR=NOW.getUTCFullYear(),YL=((YR%4==0&&YR%100!=0)||YR%400==0)?366:365;
+let LST,PHI,dirty=1,UT=NOW.getUTCHours()+NOW.getUTCMinutes()/60+NOW.getUTCSeconds()/3600,DAY=Math.round((Date.UTC(YR,NOW.getUTCMonth(),NOW.getUTCDate())-Date.UTC(YR,0,1))/864e5);
 const sph=(a,b)=>{a*=D;b*=D;return[Math.cos(b)*Math.cos(a),Math.cos(b)*Math.sin(a),Math.sin(b)]};
 const eclEq=v=>[v[0],v[1]*Math.cos(EPS*D)-v[2]*Math.sin(EPS*D),v[1]*Math.sin(EPS*D)+v[2]*Math.cos(EPS*D)];
 const eqEcl=v=>[v[0],v[1]*Math.cos(EPS*D)+v[2]*Math.sin(EPS*D),-v[1]*Math.sin(EPS*D)+v[2]*Math.cos(EPS*D)];
@@ -121,9 +124,9 @@ function sunVec(d){const g=(357.528+.9856003*d)*D,L=280.46+.9856474*d,l=L+1.915*
 function objVec(i){const o=OBJ[i];if(o.sun)return sunVec(T.d);if(o.gal)return galEq(sph(o.gal[0],o.gal[1]));if(o.cus)return sph(+$('cra').value*15,+$('cde').value);return sph(o.ra,o.de)}
 let T={};
 function upd(){
- const ms=Date.UTC(2026,0,1)+DAY*864e5+UT*36e5;T.d=(ms-946728000000)/864e5;
+ const ms=Date.UTC(YR,0,1)+DAY*864e5+UT*36e5;T.d=(ms-946728000000)/864e5;
  T.gmst=n360(280.46061837+360.98564736629*T.d);LST=n360(T.gmst+(+$('lo').value));PHI=+$('la').value;
- T.date=new Date(Date.UTC(2026,0,1)+DAY*864e5);dirty=1}
+ T.date=new Date(Date.UTC(YR,0,1)+DAY*864e5);dirty=1}
 // camera
 let W,R,cx,cy;
 function proj(p,k=1){const c=Math.cos(S.yaw),s=Math.sin(S.yaw),x1=p[0]*c-p[1]*s,y1=p[0]*s+p[1]*c,cp=Math.cos(S.pitch),sp=Math.sin(S.pitch),y2=y1*cp-p[2]*sp,z2=y1*sp+p[2]*cp;return[cx+x1*R*k,cy-z2*R*k,y2]}
@@ -135,17 +138,37 @@ function line(f,t0,t1,col,w,k=1,dash){const n=Math.max(8,Math.ceil(Math.abs(t1-t
  ctx.globalAlpha=1;ctx.setLineDash([])}
 function lab(p,t,col,k=1.0,dx=6,dy=-6,bold){const q=proj(p,k);LBL.push(()=>{ctx.globalAlpha=q[2]<0?1:.35;ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],3,0,7);ctx.fill();
  ctx.font=(bold?'600 ':'')+'12px system-ui,sans-serif';ctx.fillText(t,q[0]+dx,q[1]+dy);if(TIP[t])HOT.push({x0:q[0]-9,y0:q[1]+Math.min(dy-12,-9),x1:q[0]+dx+ctx.measureText(t).width+3,y1:q[1]+Math.max(dy,0)+4,t,d:TIP[t]});ctx.globalAlpha=1});return q}
-function arcLabel(f,t,txt,col){const q=proj(f(t),1.0),sd=SOLID;LBL.push(()=>{ctx.fillStyle=col;ctx.font='600 12px system-ui,sans-serif';ctx.globalAlpha=(sd||q[2]<0)?1:.5;ctx.lineWidth=3;ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--sky');ctx.strokeText(txt,q[0]+5,q[1]-4);ctx.fillText(txt,q[0]+5,q[1]-4);const kk=txt.split(/[ =]/)[0];if(TIP2[kk])HOT.push({x0:q[0]+2,y0:q[1]-19,x1:q[0]+8+ctx.measureText(txt).width,y1:q[1]+3,t:kk,d:TIP2[kk]});ctx.globalAlpha=1})}
+function labText(p,t,col){const q1=proj(p,1);
+ LBL.push(()=>{const ex=q1[0]+13,ey=q1[1]-13;ctx.globalAlpha=q1[2]<0?1:.5;ctx.fillStyle=col;ctx.beginPath();ctx.arc(q1[0],q1[1],3.5,0,7);ctx.fill();
+  ctx.font='700 17px system-ui,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineWidth=4;ctx.lineJoin='round';ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--sky');ctx.strokeText(t,ex,ey);ctx.fillStyle=col;ctx.fillText(t,ex,ey);
+  ctx.textAlign='start';ctx.textBaseline='alphabetic';if(TIP[t])HOT.push({x0:ex-14,y0:ey-13,x1:ex+14,y1:ey+13,t,d:TIP[t]});ctx.globalAlpha=1})}
+function labOut(p,t,col){const q1=proj(p,1),q2=proj(p,1.2);let dx=q2[0]-q1[0],dy=q2[1]-q1[1],L=Math.hypot(dx,dy);
+ if(L<26){dx=q1[0]-cx;dy=q1[1]-cy;L=Math.hypot(dx,dy);if(L<1){dx=0;dy=-1;L=1}}
+ const len=Math.max(L,26),ux=dx/L,uy=dy/L,ex=q1[0]+ux*len,ey=q1[1]+uy*len;
+ LBL.push(()=>{const a=q1[2]<0?1:.5,cs=getComputedStyle(document.body);ctx.globalAlpha=a;ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(q1[0],q1[1]);ctx.lineTo(ex,ey);ctx.stroke();ctx.fillStyle=col;ctx.beginPath();ctx.arc(q1[0],q1[1],3.5,0,7);ctx.fill();
+  ctx.font='600 13px system-ui,sans-serif';const w=ctx.measureText(t).width+14,h=22,bx=ex+ux*(w/2),by=ey+uy*(h/2),x=bx-w/2,y=by-h/2,r=6;
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+  ctx.fillStyle=cs.getPropertyValue('--pan');ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,bx,by+.5);ctx.textAlign='start';ctx.textBaseline='alphabetic';
+  if(TIP[t])HOT.push({x0:x,y0:y,x1:x+w,y1:y+h,t,d:TIP[t]});ctx.globalAlpha=1})}
+function arcLabel(f,t,txt,col,k=1){const q=proj(f(t),k),sd=SOLID;LBL.push(()=>{const a=(sd||q[2]<0)?1:.5,cs=getComputedStyle(document.body);
+ ctx.font='600 12px system-ui,sans-serif';const w=ctx.measureText(txt).width+14,h=21,r=6,dx=q[0]-cx,dy=q[1]-cy,L=Math.hypot(dx,dy)||1,
+ bx=k>1?q[0]+dx/L*(w/2+3):q[0]+w/2+5,by=k>1?q[1]+dy/L*(h/2+3):q[1]-h/2-3,x=bx-w/2,y=by-h/2;
+ ctx.globalAlpha=a;ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],3,0,7);ctx.fill();
+ ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+ ctx.fillStyle=cs.getPropertyValue('--pan');ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.stroke();
+ ctx.fillStyle=col;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(txt,bx,by+.5);ctx.textAlign='start';ctx.textBaseline='alphabetic';
+ const kk=txt.split(/[ =]/)[0];if(TIP2[kk])HOT.push({x0:x,y0:y,x1:x+w,y1:y+h,t:kk,d:TIP2[kk]});ctx.globalAlpha=1})}
 const hms=h=>{h=((h%24)+24)%24;const H=Math.floor(h),m=Math.floor((h-H)*60),s=Math.round(((h-H)*60-m)*60);return`${H}h ${String(m).padStart(2,'0')}m ${String(s%60).padStart(2,'0')}s`};
 const dms=(a,sg)=>{const s=a<0?'−':(sg?'+':''),x=Math.abs(a),d=Math.floor(x),m=Math.floor((x-d)*60),c=Math.round(((x-d)*60-m)*60);return`${s}${d}° ${String(m).padStart(2,'0')}′ ${String(c%60).padStart(2,'0')}″`};
 function draw(){
  const dpr=devicePixelRatio||1,w=innerWidth,hh=innerHeight;if(cv.width!=Math.round(w*dpr)||cv.height!=Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr)}
- ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=hh/2;R=Math.min(w,hh)*.38*S.zoom;
+ ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=hh/2;R=Math.min(w,hh)*.34*S.zoom;
  FG=getComputedStyle(document.body).color;const mut=getComputedStyle(document.body).getPropertyValue('--mut');
  ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];ctx.textBaseline='alphabetic';
  // horizon disc
  ctx.beginPath();for(let a=0;a<=360;a+=5){const q=proj(scn(0,a,0));a?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}
- ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();
+ ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();SKYON=0;if(OBJ[S.obj].sun||S.tm==2||S.tm==4){SKYON=1;skyDome()}
  // sphere outline
  ctx.strokeStyle=mut;ctx.globalAlpha=.3;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();ctx.globalAlpha=1;
  const k=S.sys,L=S.lay,o=objVec(S.obj),C=coords(o),[a,b]=C[k];
@@ -160,17 +183,18 @@ function draw(){
  if(L.galp&&k!=4)line(t=>scn(4,t,0),0,360,COL[4],1.4);
  // special points
  ctx.font='600 12px system-ui';
- [['N',0],['E',90],['S',180],['W',270]].forEach(([t,az])=>lab(scn(0,az,0),t,COL[0],1.0,6,-6,1));
+ [['N',0],['E',90],['S',180],['W',270]].forEach(([t,az])=>labText(scn(0,az,0),t,COL[0]));
  lab([0,0,1],'Zenith',COL[0],1,6,-6,1);lab([0,0,-1],'Nadir',COL[0],1,6,12);
  lab(scn(2,0,90),'NCP',COL[2],1,6,-6,1);lab(scn(2,0,-90),'SCP',COL[2],1,6,12);
- lab(scn(2,0,0),'♈ vernal equinox',COL[2],1.0,7,14,1);lab(scn(2,180,0),'♎ autumnal equinox',COL[2],1,7,14,1);
+ labOut(scn(2,0,0),'♈ vernal equinox',COL[2]);lab(scn(2,180,0),'♎ autumnal equinox',COL[2],1,7,14,1);
  lab(scn(3,90,0),'June solstice',COL[3],1,6,-6);lab(scn(3,270,0),'Dec solstice',COL[3],1,6,-6);
  if(L.galp||k==4)lab(scn(4,0,0),'Gal. centre',COL[4],1,6,-6);
  if(k==4)lab(scn(4,0,90),'NGP',COL[4],1,6,-6);if(k==3)lab(scn(3,0,90),'N ecl. pole',COL[3],1,6,-6);
  // angle arcs
  if(L.arcs){SOLID=1;
   const pt=(kk,aa,bb)=>scn(kk,aa,bb),bgc=getComputedStyle(document.body).getPropertyValue('--sky'),hr=k==1||k==2;
-  const wedge=(f,t0,t1,col)=>{ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n));ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.05);gd.addColorStop(0,hexa(col,.05));gd.addColorStop(.6,hexa(col,.26));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()};
+  const wedge=(f,t0,t1,col,kk=1)=>{ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n),kk);ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.05*kk);gd.addColorStop(0,hexa(col,.05));gd.addColorStop(.6,hexa(col,.26));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()};
+  const band=(f,t0,t1,col,k0,k1)=>{const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));ctx.beginPath();for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n),k1);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}for(let i=n;i>=0;i--){const q=proj(f(t0+(t1-t0)*i/n),k0);ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,R*k0,cx,cy,R*k1);gd.addColorStop(0,hexa(col,.12));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()};
   const hi=(f,t0,t1,col,txt)=>{wedge(f,t0,t1,col);line(f,t0,t1,col+'55',13,1.02);line(f,t0,t1,col,4.5,1.02);const q=proj(f(t1),1.02);ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fill();arcLabel(f,(t0+t1)/2,txt,col)};
   const tk=(f,t,txt)=>{const q=proj(f(t),1.09);LBL.push(()=>{ctx.globalAlpha=q[2]<0?1:.4;ctx.font='11px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(txt,q[0]-8,q[1]+4);ctx.fillStyle=COL[k];ctx.fillText(txt,q[0]-8,q[1]+4);ctx.globalAlpha=1})};
   if(S.tm){
@@ -196,9 +220,9 @@ function draw(){
    hi(t=>pt(k,a,t),0,b,CB,`${nm[1]} = ${b.toFixed(1)}° ${nm[3]}`);
   }else{
    const de=C[1][1],H=C[1][0],ra=C[2][0];
-   if(k==1){line(t=>pt(2,t,0),0,ra,CR,2.5,1.08);arcLabel(t=>pt(2,t,0),ra/2,`α = ${hrs(ra)}`,CR)}
-   else{line(t=>pt(1,t,0),0,H,CL,2.5,1.08);arcLabel(t=>pt(1,t,0),H/2,`H = ${hrs(H)}`,CL)}
-   line(t=>pt(1,t,0),0,LST,CS,2,1.15,[6,4]);arcLabel(t=>pt(1,t,0),LST/2,`θ = LST = ${hrs(LST)} (α + H)`,CS);
+   band(t=>pt(1,t,0),0,LST,CS,1,1.32);line(t=>pt(1,t,0),0,LST,CS,3,1.32);arcLabel(t=>pt(1,t,0),LST/2,`θ = LST = ${hrs(LST)} (α + H)`,CS,1.44);
+   if(k==1){band(t=>pt(2,t,0),0,ra,CR,1,1.16);line(t=>pt(2,t,0),0,ra,CR,3,1.16);arcLabel(t=>pt(2,t,0),ra/2,`α = ${hrs(ra)}`,CR,1.28)}
+   else{band(t=>pt(1,t,0),0,H,CL,1,1.16);line(t=>pt(1,t,0),0,H,CL,3,1.16);arcLabel(t=>pt(1,t,0),H/2,`H = ${hrs(H)}`,CL,1.28)}
    if(k==1)hi(t=>pt(1,t,0),0,H,CL,`H = ${hrs(H)} from meridian toward W`);
    else hi(t=>pt(2,t,0),0,ra,CR,`α = ${hrs(ra)} (RA) from ♈ toward E`);
    hi(t=>pt(1,H,t),0,de,CB,`δ = ${de.toFixed(1)}° (Dec) from equator`);
@@ -231,9 +255,9 @@ function table(C,o){
  <tr><td>Sun λ / Dec</td><td>${sc[3][0].toFixed(1)}° / ${dms(sc[2][1],1)}</td></tr><tr><td>Obliquity ε</td><td>${EPS}°</td></tr>`}
 function ui(){
   $('legend').innerHTML=`<span><i class="k" style="background:${CL}"></i>longitude / H</span><span><i class="k" style="background:${CR}"></i>α (RA)</span><span><i class="k" style="background:${CB}"></i>latitude / Dec / z</span><span><i class="k" style="background:${CS}"></i>LST</span>`+COL.map((c,i)=>`<span><i class="k" style="background:${c}"></i>${['horizon','equator','equator','ecliptic','Gal. plane'][i]}</span>`).filter((_,i)=>i!=2&&i<7).join('');
- const fx=()=>{$('utO').textContent=hms(UT).slice(0,-4);$('dyO').textContent=T.date.toISOString().slice(5,10);$('laO').textContent=(+$('la').value).toFixed(1)+'°';$('loO').textContent=(+$('lo').value).toFixed(1)+'°';$('craO').textContent=(+$('cra').value).toFixed(2)+'h';$('cdeO').textContent=$('cde').value+'°'};
+ const fx=()=>{$('utO').textContent=hms(UT).slice(0,-4);$('dyO').textContent=T.date.toISOString().slice(5,10);$('laO').textContent=(+$('la').value).toFixed(1)+'°';$('loO').textContent=(+$('lo').value).toFixed(1)+'°';$('craO').textContent=(+$('cra').value).toFixed(2)+'h';$('cdeO').textContent=$('cde').value+'°';document.querySelectorAll('#ssn button').forEach(b=>b.classList.toggle('on',Math.abs(DAY-b.dataset.d)<=1))};
  ui.fx=fx;fx()}
-$('obj').innerHTML=OBJ.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('');$('obj').value=1;
+$('obj').innerHTML=OBJ.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('');$('obj').value=ST.length;
 $('lay').innerHTML=Object.keys(lays).map(k=>`<label><input type="checkbox" data-l="${k}" ${S.lay[k]?'checked':''}> ${lays[k]}</label>`).join(' ');
 $('lay').onchange=e=>{S.lay[e.target.dataset.l]=e.target.checked?1:0;dirty=1};
 $('obj').onchange=e=>{S.obj=+e.target.value;$('cust').style.display=OBJ[S.obj].cus?'block':'none';dirty=1};
@@ -241,7 +265,7 @@ $('obj').onchange=e=>{S.obj=+e.target.value;$('cust').style.display=OBJ[S.obj].c
 document.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{DAY=+b.dataset.d;$('dy').value=DAY;upd();ui.fx()});
 $('play').onclick=()=>{S.play=!S.play;$('play').textContent=S.play?'❚❚ Pause':'▶ Play';last=0};
 let last=0;
-function loop(t){if(S.play){if(last){UT+=(t-last)/1000*$('spd').value/3600;while(UT>=24){UT-=24;DAY=(DAY+1)%365}$('ut').value=UT;$('dy').value=DAY;upd();ui.fx()}last=t}
+function loop(t){if(S.play){if(last){UT+=(t-last)/1000*$('spd').value/3600;while(UT>=24){UT-=24;DAY=(DAY+1)%YL}$('ut').value=UT;$('dy').value=DAY;upd();ui.fx()}last=t}
  if(dirty){dirty=0;draw()}requestAnimationFrame(loop)}
 // interaction
 let dr=null;
@@ -269,6 +293,21 @@ const TXT=[
 `The <b>equation of time</b> is apparent minus mean solar time, which equals α(mean Sun) − α(true Sun). It reaches about +16 min in early November and −14 min in mid February, and is zero around 15 April, 13 June, 1 September and 25 December. Two effects add up: the tilt of the ecliptic (two cycles per year) and the eccentricity of Earth's orbit (one cycle per year). The chart shows the year; the dot is the selected date.`];
 const FM=['sin h = sin φ sin δ + cos φ cos δ cos H<br>z = 90° − h','H = LST − α<br>H = 15° per sidereal hour','α measured from ♈, eastward<br>LST = α + H','tan α = cos ε tan λ (for β = 0)<br>ε = 23.44°','l = 0° → Galactic centre<br>b = +90° → north galactic pole','LST = GMST + λ_east<br>GMST ≈ 280.46° + 360.9856° · d','Apparent solar time = H☉ + 12h','Mean solar time = H(mean Sun) + 12h<br>EoT = apparent − mean','EoT = α(mean Sun) − α(true Sun)<br>1° = 4 min of time'];
 function setLesson(i){S.lesson=i;if(i<5){S.sys=LES[i][1];S.tm=0;ui()}else S.tm=i-4;renderSide();dirty=1}
+let rs=12345;const rr=()=>(rs=(rs*16807)%2147483647)/2147483647,SKY=[];for(let i=0;i<220;i++){const z=2*rr()-1,a=rr()*6.2832,r=Math.sqrt(1-z*z);SKY.push([r*Math.cos(a),r*Math.sin(a),z,.5+rr()*1.3])}
+let SKYON=0,SUNALT=0;
+function skyDome(){
+ const sv=eq2s(sunVec(T.d)),h=deg(Math.asin(sv[2]));SUNALT=h;
+ const K=[[-18,'#030612','#0a1228'],[-8,'#0d1a44','#3b2f68'],[-2,'#243f86','#e0825b'],[4,'#3573c6','#ffc78c'],[14,'#2a74d0','#a8d3ff'],[32,'#175fc0','#c3e3ff']];
+ let i=0;while(i<K.length-2&&h>K[i+1][0])i++;const a=K[i],b=K[i+1],t=Math.max(0,Math.min(1,(h-a[0])/(b[0]-a[0])));
+ const mix=(x,y)=>{const X=parseInt(x.slice(1),16),Y=parseInt(y.slice(1),16),c=k=>Math.round(((X>>k)&255)*(1-t)+((Y>>k)&255)*t);return`rgb(${c(16)},${c(8)},${c(0)})`};
+ const top=mix(a[1],b[1]),bot=mix(a[2],b[2]),z=proj([0,0,1]),sp=Math.abs(Math.sin(S.pitch));
+ ctx.save();ctx.beginPath();ctx.ellipse(cx,cy,R,Math.max(.5,R*sp),0,Math.PI,0,true);ctx.arc(cx,cy,R,0,Math.PI,true);ctx.closePath();ctx.clip();
+ const g=ctx.createRadialGradient(z[0],z[1],0,z[0],z[1],R*1.35);g.addColorStop(0,top);g.addColorStop(1,bot);ctx.globalAlpha=.24;ctx.fillStyle=g;ctx.fillRect(cx-R,cy-R,2*R,2*R);ctx.globalAlpha=1;
+ const night=Math.max(0,Math.min(1,(-5-h)/10));
+ if(night>0)SKY.forEach(v=>{const s=eq2s(v);if(s[2]<.03)return;const q=proj(s);ctx.globalAlpha=night*(q[2]<0?.55:.2);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(q[0],q[1],v[3]*.8,0,7);ctx.fill()});
+ ctx.globalAlpha=1;
+ if(h>-8){const q=proj(sv),w=Math.max(0,Math.min(1,(h+8)/16)),gl=ctx.createRadialGradient(q[0],q[1],0,q[0],q[1],R*.8);gl.addColorStop(0,`rgba(255,244,214,${.6*w})`);gl.addColorStop(.35,`rgba(255,214,150,${.25*w})`);gl.addColorStop(1,'rgba(255,200,120,0)');ctx.globalAlpha=q[2]<0?1:.45;ctx.fillStyle=gl;ctx.fillRect(cx-R,cy-R,2*R,2*R)}
+ ctx.restore();ctx.globalAlpha=1}
 function renderSide(){const g=(a,b)=>LES.slice(a,b).map((l,j)=>`<button data-i="${a+j}" class="${a+j==S.lesson?'on':''}">${l[0]}</button>`).join('');
  $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5)+'<div class="gl">Time</div>'+g(5,9);
  $('card').innerHTML=`<b>${LES[S.lesson][0]}</b><p>${TXT[S.lesson]}</p><div class="fm">${FM[S.lesson]}</div><div id="live"></div><canvas id="pv" width="600" height="360"></canvas>`}
@@ -297,7 +336,7 @@ function side(){const i=S.lesson,C=coords(objVec(S.obj)),d=T.d,L=n360(280.46+.98
   if(i>=6){const p=P(x,y,r,as);dot(p[0],p[1],'#f5b400',6);tx('Sun',p[0]+8,p[1]-4);ar(x,y,40,as,as+Hs,CL,3.5);tx(i==6?'H☉':'H mean',...P(x,y,50,as+Hs/2),CL)}
   if(i==7){const p=P(x,y,r,L);dot(p[0],p[1],'#f5b400',5,0);tx('mean Sun',p[0]+8,p[1]+12);ar(x,y,40,L,L+Hm,CL,3.5);ar(x,y,r-8,as,as+eot,CS,3.5);tx('EoT '+m+' min',100,174,CS)}
   if(i==6)tx('noon: Sun on the meridian',150,174,mu);
- }else{const x0=34,x1=290,y0=26,y1=158,my=(y0+y1)/2,sc=(y1-y0)/2/20,E=dd=>{const dl=(Date.UTC(2026,0,1)+dd*864e5+432e5-946728000000)/864e5,q=sunVec(dl);return((n360(280.46+.9856474*dl)-n360(deg(Math.atan2(q[1],q[0])))+540)%360-180)*4};
+ }else{const x0=34,x1=290,y0=26,y1=158,my=(y0+y1)/2,sc=(y1-y0)/2/20,E=dd=>{const dl=(Date.UTC(YR,0,1)+dd*864e5+432e5-946728000000)/864e5,q=sunVec(dl);return((n360(280.46+.9856474*dl)-n360(deg(Math.atan2(q[1],q[0])))+540)%360-180)*4};
   tx('Equation of time (min)',6,14,mu);c.strokeStyle=mu;c.lineWidth=1;c.beginPath();c.moveTo(x0,my);c.lineTo(x1,my);c.stroke();tx('+15',8,my-15*sc+4,mu);tx('−15',8,my+15*sc+4,mu);tx('0',22,my+4,mu);
   [0,31,59,90,120,151,181,212,243,273,304,334].forEach((s,j)=>tx('JFMAMJJASOND'[j],x0+(x1-x0)*(s+15)/365-3,172,mu));
   c.beginPath();for(let dd=0;dd<=364;dd+=3){const X=x0+(x1-x0)*dd/364,Y=my-E(dd)*sc;dd?c.lineTo(X,Y):c.moveTo(X,Y)}c.strokeStyle=CL;c.lineWidth=2.5;c.stroke();
@@ -321,9 +360,16 @@ function starSprite(col){return SP[col]||(SP[col]=mk(256,(g,m,n)=>{
  [Math.PI/4,-Math.PI/4].forEach(a=>{g.save();g.translate(m,m);g.rotate(a);const gr=g.createLinearGradient(-m*.55,0,m*.55,0);gr.addColorStop(0,hexa(col,0));gr.addColorStop(.5,'rgba(255,255,255,.35)');gr.addColorStop(1,hexa(col,0));g.fillStyle=gr;g.fillRect(-m*.55,-.6,m*1.1,1.2);g.restore()});
  const c=g.createRadialGradient(m,m,0,m,m,m*.13);c.addColorStop(0,'#fff');c.addColorStop(.5,'#fff');c.addColorStop(1,hexa(col,0));g.fillStyle=c;g.beginPath();g.arc(m,m,m*.13,0,7);g.fill()}))}
 function glowBack(x,y,r){const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,'rgba(4,7,18,.9)');g.addColorStop(.55,'rgba(4,7,18,.6)');g.addColorStop(1,'rgba(4,7,18,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill()}
-function drawSun(q,sc=1){const s=210*sc;glowBack(q[0],q[1],s*.55);ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(sunSprite(),q[0]-s/2,q[1]-s/2,s,s);ctx.restore()}
+function drawSun(q,sc=1){const s=210*sc;if(!(SKYON&&SUNALT>-2))glowBack(q[0],q[1],s*.55);ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(sunSprite(),q[0]-s/2,q[1]-s/2,s,s);ctx.restore()}
 function drawStar(q,col,sc=1){const s=170*sc;glowBack(q[0],q[1],s*.45);ctx.save();ctx.globalCompositeOperation='lighter';ctx.drawImage(starSprite(col),q[0]-s/2,q[1]-s/2,s,s);ctx.restore()}
 function FL(){const a=LBL;LBL=[];a.forEach(f=>f())}
 function drawBody(q){const i=S.obj,o=OBJ[i];if(o.sun)return drawSun(q);if(i<ST.length){const t=STC[o.n]||['#ffffff',1];return drawStar(q,t[0],Math.max(.6,Math.min(1.5,1.25-.28*t[1])))}if(o.gal)return drawStar(q,'#ffd9a0',1.4);drawStar(q,'#ffffff',1)}
+const di=(m,d)=>Math.round((Date.UTC(YR,m,d)-Date.UTC(YR,0,1))/864e5),SSN=[[di(2,20),'March equinox','20 Mar','Sun at ♈ → α☉ = 0h, δ☉ = 0°, λ☉ = 0°','H☉ = LST · noon: LST = 0h, GMST = −λ<sub>obs</sub> · day = night'],
+[di(5,21),'June solstice','21 Jun','α☉ = 6h, δ☉ = +ε = +23.44°, λ☉ = 90°','H☉ = LST − 6h · noon: GMST = 6h − λ<sub>obs</sub> · longest day (north)'],
+[di(8,23),'September equinox','23 Sep','Sun at ♎ → α☉ = 12h, δ☉ = 0°, λ☉ = 180°','H☉ = LST − 12h · noon: GMST = 12h − λ<sub>obs</sub> · day = night'],
+[di(11,21),'December solstice','21 Dec','α☉ = 18h, δ☉ = −ε = −23.44°, λ☉ = 270°','H☉ = LST − 18h · noon: GMST = 18h − λ<sub>obs</sub> · shortest day (north)']];
+$('ssn').innerHTML=SSN.map(s=>`<button data-d="${s[0]}"><b>${s[1]} <small>· ${s[2]}</small></b><span>${s[3]}<br>${s[4]}</span></button>`).join('');
+$('ssn').onclick=e=>{const b=e.target.closest('button');if(!b)return;DAY=+b.dataset.d;$('dy').value=DAY;upd();ui.fx()};
+$('dy').max=YL-1;$('ut').value=UT;$('dy').value=DAY;
 upd();ui();renderSide();requestAnimationFrame(loop);
 </script></body></html>
