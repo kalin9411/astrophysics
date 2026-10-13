@@ -47,12 +47,24 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 @media(max-width:1000px){aside,#ctl{width:min(330px,calc(100vw - 20px))}}
 #tip{position:fixed;z-index:6;pointer-events:none;max-width:280px;background:var(--pan);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:6px 9px;font-size:12px;line-height:1.4;box-shadow:0 4px 14px rgba(0,0,0,.25);display:none}
 .ssn{display:grid;gap:6px;margin-top:8px}.ssn button{font:inherit;text-align:left;border:1px solid var(--bd);background:var(--bg);color:var(--fg);padding:9px 11px;border-radius:8px;cursor:pointer}.ssn button b{display:block;font-size:15px}.ssn button small{font-weight:400;color:var(--mut);font-size:12px}.ssn button span{display:block;font-size:12px;color:var(--mut);margin-top:4px;line-height:1.45}.ssn button.on{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac);background:color-mix(in srgb,var(--ac) 12%,var(--bg))}
+#tms2 th{color:var(--mut);font-weight:600;padding-top:8px}#tms2 .fx{font-size:11px;color:var(--mut);line-height:1.35;font-weight:400;margin-top:1px}#tms2 .tv{white-space:nowrap;text-align:right;vertical-align:top;font-weight:600}tr.tr{cursor:pointer}tr.tr:hover td{background:color-mix(in srgb,var(--ac) 8%,transparent)}tr.tr.sel td{background:color-mix(in srgb,var(--ac) 18%,transparent)}
+#eq{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 56px);z-index:2;display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:none;max-width:min(92vw,880px)}
+.ec{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}.ec b{background:color-mix(in srgb,var(--pan) 94%,transparent);border:2px solid;border-radius:9px;padding:5px 11px;font:600 14px system-ui,sans-serif;white-space:nowrap}.ec i{font:600 20px system-ui,sans-serif;color:var(--fg);font-style:normal}.et{font:600 13px system-ui,sans-serif;background:color-mix(in srgb,var(--pan) 90%,transparent);border:1px solid var(--bd);padding:2px 10px;border-radius:6px}
+h1,.sub{display:none}
+.tabs{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:50%;transform:translateX(-50%);z-index:5;display:flex;gap:4px;background:color-mix(in srgb,var(--pan) 90%,transparent);border:1px solid var(--bd);border-radius:9px;padding:3px;backdrop-filter:blur(6px)}
+.tabs button{font:inherit;font-weight:600;border:0;background:transparent;color:var(--fg);padding:6px 14px;border-radius:7px;cursor:pointer;white-space:nowrap}.tabs button.on{background:var(--ac);color:#fff}
+#tri{display:none;width:370px;left:10px}body.tr #tri:not(.hide){display:block}body.tr #lft,body.tr .vw,body.tr #legend{display:none}body.tr #eq{display:none!important}
+#tri .box,.stp{background:color-mix(in srgb,var(--pan) 90%,transparent);backdrop-filter:blur(6px)}
+.stp{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}.stp.sel{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}.stp>b{display:block;margin-bottom:3px}.stp .fm{margin-top:4px}
+.stp{position:relative;padding-left:16px}.stp::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:4px;border-radius:2px;background:var(--sc,transparent)}.stp:hover{border-color:var(--ac)}
 </style></head><body>
 <h1>Celestial Sphere Lab</h1>
 <div class="sub">Drag to rotate · scroll to zoom · choose the object in the right panel Everything is drawn for an observer at the centre.</div>
 <main>
+<div class="tabs" id="tabs"><button data-t="0" class="on">View</button><button data-t="1">Horizontal → Equatorial</button></div>
 <button class="tgl" id="tl" title="Show / hide lessons">☰</button><button class="tgl" id="tr" title="Show / hide controls">⚙</button>
-<aside id="lft"><div class="box"><b>Angle format</b><div class="seg" id="fmt" style="margin-top:6px"><button data-f="0" class="on">Decimal</button><button data-f="1">h m s · ° ′ ″</button></div></div><div class="box"><div class="les" id="les" style="margin-top:0"></div></div><div class="box" id="card"></div></aside>
+<aside id="lft"><div class="box"><b>Angle format</b><div class="seg" id="fmt" style="margin-top:6px"><button data-f="0">Decimal</button><button data-f="1" class="on">h m s · ° ′ ″</button></div></div><div class="box"><div class="les" id="les" style="margin-top:0"></div></div><div class="box" id="card"></div></aside>
+<aside id="tri"></aside>
 <section class="stage"><canvas id="cv"></canvas>
 <div class="box tg" id="legend"></div></section>
 <section id="ctl">
@@ -69,10 +81,11 @@ aside .box,#ctl .box{background:color-mix(in srgb,var(--pan) 90%,transparent);ba
 <div id="cust" style="display:none"><label class="r">RA<input type="range" id="cra" min="0" max="24" step="0.01" value="12"><output id="craO"></output></label>
 <label class="r">Dec<input type="range" id="cde" min="-90" max="90" step="0.5" value="20"><output id="cdeO"></output></label></div></div>
 <div class="box"><b>Layers</b><div class="tg" id="lay"></div><label class="r" style="margin-top:8px">Sky opacity<input type="range" id="sky" min="0" max="100" value="25"><output id="skyO">25%</output></label></div>
-<div class="box"><b>Object coordinates</b><table id="tab"></table></div>
-<div class="box"><b>Derived quantities</b><table id="der"></table></div>
+<div class="box vw"><b>Object coordinates</b><table id="tab"></table></div>
+<div class="box vw"><b>Derived quantities</b><table id="der"></table></div>
+<div class="box vw"><b>Times</b><div class="def">Click a row to show the angles of its formula on the sphere.</div><table id="tms2"></table></div>
 </section></main>
-<div id="tip"></div>
+<div id="eq"></div><div id="tip"></div>
 <script>
 const D=Math.PI/180,$=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 const EPS=23.4393,M=[[-0.0548755604,-0.8734370902,-0.4838350155],[0.4941094279,-0.4448296300,0.7469822445],[-0.8676661490,-0.1980763734,0.4559837762]];
@@ -99,7 +112,7 @@ TIP2={'A':`Azimuth A: angle along the horizon from North toward East, 0–360°.
 'l':`Galactic longitude l: angle along the galactic plane from the Galactic centre.`,'b':`Galactic latitude b: angle north or south of the galactic plane.`,'φ':`Observer's latitude φ: equals the altitude of the north celestial pole above your horizon.`,'ε':`Obliquity ε = 23.44°: tilt of the ecliptic to the celestial equator, caused by Earth's axial tilt.`,'H☉':`Hour angle of the true Sun, measured from the meridian westward. Apparent solar time = H☉ + 12h.`,'H(mean)':`Hour angle of the mean Sun. Local mean time = H + 12h.`,'EoT':`Equation of time = apparent − mean solar time = α(mean Sun) − α(true Sun). 1° = 4 minutes.`};
 function showTip(x,y){let best=null,bd=1e9;for(const h of HOT)if(x>=h.x0&&x<=h.x1&&y>=h.y0&&y<=h.y1){const d=Math.hypot((h.x0+h.x1)/2-x,(h.y0+h.y1)/2-y);if(d<bd){bd=d;best=h}}
  const t=$('tip');if(!best){t.style.display='none';return}t.innerHTML=`<b>${best.t}</b><br>${best.d}`;t.style.display='block';t.style.left=Math.min(x+14,innerWidth-t.offsetWidth-8)+'px';t.style.top=Math.min(y+14,innerHeight-t.offsetHeight-8)+'px'}
-let S={sex:0,tm:0,zoom:1,lesson:2,sys:2,yaw:0,pitch:.38,obj:ST.length,lay:{hor:1,mer:1,equ:1,ecl:1,galp:0,grid:1,arcs:1,names:1},play:0};
+let S={tab:0,step:0,tq:'lst',sex:1,tm:0,zoom:1,lesson:2,sys:2,yaw:0,pitch:.38,obj:ST.length,lay:{hor:1,mer:1,equ:1,ecl:1,galp:0,grid:1,arcs:1,names:1},play:0};
 const lays={hor:'Horizon',mer:'Local meridian',equ:'Celestial equator',ecl:'Ecliptic',galp:'Galactic plane',grid:'System grid',arcs:'Angle arcs'};
 const NOW=new Date(),YR=NOW.getUTCFullYear(),YL=((YR%4==0&&YR%100!=0)||YR%400==0)?366:365;
 let LST,PHI,dirty=1,UT=NOW.getUTCHours()+NOW.getUTCMinutes()/60+NOW.getUTCSeconds()/3600,DAY=Math.round((Date.UTC(YR,NOW.getUTCMonth(),NOW.getUTCDate())-Date.UTC(YR,0,1))/864e5);
@@ -167,7 +180,7 @@ function draw(){
  const dpr=devicePixelRatio||1,w=innerWidth,hh=innerHeight;if(cv.width!=Math.round(w*dpr)||cv.height!=Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr)}
  ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=hh/2;R=Math.min(w,hh)*.34*S.zoom;
  FG=getComputedStyle(document.body).color;const mut=getComputedStyle(document.body).getPropertyValue('--mut');
- ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];ctx.textBaseline='alphabetic';
+ ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];if(S.tab==1){drawTri();triPanel();return}ctx.textBaseline='alphabetic';
  // horizon disc
  ctx.beginPath();for(let a=0;a<=360;a+=5){const q=proj(scn(0,a,0));a?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}
  ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();SKYON=0;if(OBJ[S.obj].sun||S.tm==2||S.tm==4){SKYON=1;skyDome()}
@@ -197,13 +210,13 @@ function draw(){
   const pt=(kk,aa,bb)=>scn(kk,aa,bb),bgc=getComputedStyle(document.body).getPropertyValue('--sky'),hr=k==1||k==2;
   const wedge=(f,t0,t1,col,kk=1)=>{ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n),kk);ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.05*kk);gd.addColorStop(0,hexa(col,.05));gd.addColorStop(.6,hexa(col,.26));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()};
   const band=(f,t0,t1,col,k0,k1)=>{const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));ctx.beginPath();for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n),k1);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}for(let i=n;i>=0;i--){const q=proj(f(t0+(t1-t0)*i/n),k0);ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,R*k0,cx,cy,R*k1);gd.addColorStop(0,hexa(col,.12));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()};
-  const hi=(f,t0,t1,col,txt)=>{wedge(f,t0,t1,col);line(f,t0,t1,col+'55',13,1.02);line(f,t0,t1,col,4.5,1.02);const q=proj(f(t1),1.02);ctx.fillStyle=col;ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fill();arcLabel(f,(t0+t1)/2,txt,col)};
+  const hi=(f,t0,t1,col,txt)=>{wedge(f,t0,t1,col);line(f,t0,t1,col+'55',13,1.02);line(f,t0,t1,col,4.5,1.02);arrowEnd(f,t0,t1,col,1.02);arcLabel(f,(t0+t1)/2,txt,col)};
   const tk=(f,t,txt)=>{const q=proj(f(t),1.09);LBL.push(()=>{ctx.globalAlpha=q[2]<0?1:.4;ctx.font='11px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(txt,q[0]-8,q[1]+4);ctx.fillStyle=COL[k];ctx.fillText(txt,q[0]-8,q[1]+4);ctx.globalAlpha=1})};
   if(S.tm){
    const L0=n360(280.46+.9856474*T.d),sv=sunVec(T.d),as=n360(deg(Math.atan2(sv[1],sv[0]))),Hs=n360(LST-as),Hm=n360(LST-L0),eot=((L0-as+540)%360)-180,hh2=x=>fh(x,2),eqc=t=>scn(1,t,0);
-   line(t=>scn(2,t,0),0,360,COL[2],2.5);line(t=>scn(1,0,t),-90,270,COL[0],2,1,[5,4]);lab(scn(1,0,0),'meridian crossing',COL[0],1,6,14,1);
+   line(t=>scn(2,t,0),0,360,COL[2],2.5);if(S.tm!=1){line(t=>scn(1,0,t),-90,270,COL[0],2,1,[5,4]);lab(scn(1,0,0),'meridian crossing',COL[0],1,6,14,1)}
    const sun=(f,ra,hc)=>{line(t=>scn(1,ra,t),-90,90,'#f5b400',1.2,1,[3,4])};
-   if(S.tm==1){hi(eqc,0,LST,CS,`θ = LST = ${hh2(LST)}`)}
+   if(S.tm==1){const sv1=sunVec(T.d+1),as1=n360(deg(Math.atan2(sv1[1],sv1[0]))),dA=((as1-as+540)%360)-180,q0=proj(eq2s(sv));line(t=>scn(2,as,t),-90,90,'#f5b400',1.2,1,[3,4]);line(t=>scn(2,as+dA,t),-90,90,CR,1.2,1,[3,4]);hi(t=>scn(2,t,0),as,as+dA,CR,`Δα☉ = ${fd(dA,0,3)} per day`);drawSun(q0,.6);sidInset(q0,dA)}
    if(S.tm==2||S.tm==4){line(t=>scn(1,Hs,t),-90,90,'#f5b400',1.5,1,[3,4]);drawSun(proj(eq2s(sv)),.8);lab(eq2s(sv),'true Sun','#f5b400',1,6,-8,1);if(S.tm==2)hi(eqc,0,Hs,CL,`H☉ = ${hh2(Hs)}  (apparent time = H☉ + 12h)`)}
    if(S.tm==3||S.tm==4){line(t=>scn(1,Hm,t),-90,90,COL[3],1.5,1,[3,4]);lab(scn(2,L0,0),'mean Sun',COL[3],1,6,14,1);hi(eqc,0,Hm,S.tm==3?CL:CB,`H(mean) = ${hh2(Hm)}  (mean time = H + 12h)`)}
    if(S.tm==4){hi(t=>scn(2,t,0),as,as+eot,CS,`EoT = ${(eot*4).toFixed(1)} min = α(mean) − α(true)`);arcLabel(eqc,Hs/2,`H☉ = ${hh2(Hs)}`,'#f5b400')}
@@ -222,18 +235,18 @@ function draw(){
    hi(t=>pt(k,a,t),0,b,CB,`${nm[1]} = ${fd(b)} ${nm[3]}`);
   }else{
    const de=C[1][1],H=C[1][0],ra=C[2][0];
-   band(t=>pt(1,t,0),0,LST,CS,1,1.32);line(t=>pt(1,t,0),0,LST,CS,3,1.32);arcLabel(t=>pt(1,t,0),LST/2,`θ = LST = ${hrs(LST)} (α + H)`,CS,1.44);
-   if(k==1){band(t=>pt(2,t,0),0,ra,CR,1,1.16);line(t=>pt(2,t,0),0,ra,CR,3,1.16);arcLabel(t=>pt(2,t,0),ra/2,`α = ${hrs(ra)}`,CR,1.28)}
-   else{band(t=>pt(1,t,0),0,H,CL,1,1.16);line(t=>pt(1,t,0),0,H,CL,3,1.16);arcLabel(t=>pt(1,t,0),H/2,`H = ${hrs(H)}`,CL,1.28)}
+   band(t=>pt(1,t,0),0,LST,CS,1,1.32);line(t=>pt(1,t,0),0,LST,CS,3,1.32);arrowEnd(t=>pt(1,t,0),0,LST,CS,1.32);arcLabel(t=>pt(1,t,0),LST/2,`θ = LST = ${hrs(LST)} (α + H)`,CS,1.44);
+   if(k==1){band(t=>pt(2,t,0),0,ra,CR,1,1.16);line(t=>pt(2,t,0),0,ra,CR,3,1.16);arrowEnd(t=>pt(2,t,0),0,ra,CR,1.16);arcLabel(t=>pt(2,t,0),ra/2,`α = ${hrs(ra)}`,CR,1.28)}
+   else{band(t=>pt(1,t,0),0,H,CL,1,1.16);line(t=>pt(1,t,0),0,H,CL,3,1.16);arrowEnd(t=>pt(1,t,0),0,H,CL,1.16);arcLabel(t=>pt(1,t,0),H/2,`H = ${hrs(H)}`,CL,1.28)}
    if(k==1)hi(t=>pt(1,t,0),0,H,CL,`H = ${hrs(H)} from meridian toward W`);
    else hi(t=>pt(2,t,0),0,ra,CR,`α = ${hrs(ra)} (RA) from ♈ toward E`);
    hi(t=>pt(1,H,t),0,de,CB,`δ = ${fd(de)} (Dec) from equator`);
   }
-  if(k<3){line(t=>scn(0,0,t),0,PHI,COL[0],3,1.02);arcLabel(t=>scn(0,0,t),PHI/2,`φ = ${fd(PHI)} latitude`,COL[0])}
-  if(k==3){line(t=>scn(2,270,t),90,90-EPS,COL[3],3,1.02);arcLabel(t=>scn(2,270,t),90-EPS/2,`ε = ${fd(EPS,0,2)} obliquity`,COL[3])}
+  if(k<3){line(t=>scn(0,0,t),0,PHI,COL[0],3,1.02);arrowEnd(t=>scn(0,0,t),0,PHI,COL[0],1.02);arcLabel(t=>scn(0,0,t),PHI/2,`φ = ${fd(PHI)} latitude`,COL[0])}
+  if(k==3){line(t=>scn(2,270,t),90,90-EPS,COL[3],3,1.02);arrowEnd(t=>scn(2,270,t),90,90-EPS,COL[3],1.02);arcLabel(t=>scn(2,270,t),90-EPS/2,`ε = ${fd(EPS,0,2)} obliquity`,COL[3])}
   }
   // origin (0 point) of the active system
-  if(!S.tm){const q0=proj(pt(k,0,0)),ORG=['0° = North point','H = 0h: local meridian','RA = 0h: ♈ vernal equinox','λ = 0°: ♈ vernal equinox','l = 0°: Galactic centre'];
+  if(!S.tm&&k!=2){const q0=proj(pt(k,0,0)),ORG=['0° = North point','H = 0h: local meridian','RA = 0h: ♈ vernal equinox','λ = 0°: ♈ vernal equinox','l = 0°: Galactic centre'];
   LBL.push(()=>{ctx.globalAlpha=q0[2]<0?1:.5;ctx.strokeStyle=FG;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(q0[0],q0[1],8,0,7);ctx.stroke();
   ctx.font='600 12px system-ui';ctx.lineWidth=3;ctx.strokeStyle=bgc;ctx.strokeText(ORG[k],q0[0]+12,q0[1]-12);ctx.fillStyle=COL[k];ctx.fillText(ORG[k],q0[0]+12,q0[1]-12);HOT.push({x0:q0[0]-9,y0:q0[1]-28,x1:q0[0]+14+ctx.measureText(ORG[k]).width,y1:q0[1]+9,t:'Zero point',d:ORG[k]+`: the origin of this system. Longitude-like angles are counted from here.`});ctx.globalAlpha=1})}
  }
@@ -241,7 +254,7 @@ function draw(){
  
  if(!S.tm){const oq=proj(eq2s(o));ctx.globalAlpha=oq[2]<0?1:.5;drawBody(oq);
  ctx.globalAlpha=oq[2]<0?1:.7;ctx.font='600 13px system-ui';ctx.lineWidth=3;ctx.strokeStyle='rgba(4,7,18,.85)';ctx.strokeText(OBJ[S.obj].n,oq[0]+12,oq[1]-12);ctx.fillStyle='#fff';ctx.fillText(OBJ[S.obj].n,oq[0]+12,oq[1]-12);HOT.push({x0:oq[0]-8,y0:oq[1]-22,x1:oq[0]+12+ctx.measureText(OBJ[S.obj].n).width,y1:oq[1]+8,t:OBJ[S.obj].n,d:`Selected object. Its angles from each zero point are drawn as the bold arcs; hover them for definitions.`});ctx.globalAlpha=1;}
- FL();table(C,o);side()}
+ FL();table(C,o);side();times()}
 function table(C,o){
  let h='<tr><th>System</th><th>Longitude-like</th><th>Latitude-like</th></tr>';
  SYS.forEach((s,i)=>{const [a,b]=C[i],hr=i==1||i==2;
@@ -250,9 +263,7 @@ function table(C,o){
  const alt=C[0][1],de=C[2][1],cu=90-Math.abs(PHI-de),t=-Math.tan(PHI*D)*Math.tan(de*D);
  let rs=t>1?'never rises':t<-1?'circumpolar':`±${fh(deg(Math.acos(t)),3)} from meridian`;
  const sc=coords(sunVec(T.d));
- $('der').innerHTML=`<tr><td>GMST</td><td>${fh(T.gmst,3)}</td></tr><tr><td>Local sidereal time</td><td>${fh(LST,3)}</td></tr>
- <tr><td>RA + H = LST check</td><td>${fh(C[2][0],3)} + ${fh(C[1][0],3)}</td></tr>
- <tr><td>Zenith distance</td><td>${fd(90-alt,0,2)} ${alt<0?'(below horizon)':''}</td></tr>
+ $('der').innerHTML=`<tr><td>Zenith distance</td><td>${fd(90-alt,0,2)} ${alt<0?'(below horizon)':''}</td></tr>
  <tr><td>Culmination altitude</td><td>${fd(cu)}</td></tr><tr><td>Rise/set half-arc</td><td>${rs}</td></tr>
  <tr><td>Sun λ / Dec</td><td>${fd(sc[3][0])} / ${fd(sc[2][1],1,2)}</td></tr><tr><td>Obliquity ε</td><td>${fd(EPS,0,2)}</td></tr>`}
 function ui(){
@@ -279,8 +290,8 @@ cv.onpointerup=e=>{cv.style.cursor='grab';if(dr&&dr.m<5)showTip(e.clientX,e.clie
 addEventListener('resize',()=>dirty=1);
 cv.onpointerleave=()=>$('tip').style.display='none';
 cv.addEventListener('wheel',e=>{e.preventDefault();S.zoom=Math.max(.5,Math.min(2.2,S.zoom*(e.deltaY<0?1.08:.92)));dirty=1},{passive:false});
-[['tl','lft'],['tr','ctl']].forEach(([b,el])=>$(b).onclick=()=>$(el).classList.toggle('hide'));
-if(innerWidth<1000){$('lft').classList.add('hide');$('ctl').classList.add('hide')}
+$('tl').onclick=()=>$(S.tab?'tri':'lft').classList.toggle('hide');$('tr').onclick=()=>$('ctl').classList.toggle('hide');
+if(innerWidth<1000){$('lft').classList.add('hide');$('tri').classList.add('hide');$('ctl').classList.add('hide')}
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>dirty=1);
 const LES=[['Horizontal (Az / Alt)',0],['Hour angle (H / Dec)',1],['Equatorial (RA / Dec)',2],['Ecliptic (λ / β)',3],['Galactic (l / b)',4],['Sidereal time',2],['Apparent solar time',1,ST.length],['Mean solar time',1,ST.length],['Equation of time',2,ST.length]];
 const TXT=[
@@ -310,8 +321,112 @@ function skyDome(){
  ctx.globalAlpha=1;
  if(h>-8){const q=proj(sv),w=Math.max(0,Math.min(1,(h+8)/16))*Math.min(1,SKYOP*2.2),gl=ctx.createRadialGradient(q[0],q[1],0,q[0],q[1],R*.8);gl.addColorStop(0,`rgba(255,244,214,${.6*w})`);gl.addColorStop(.35,`rgba(255,214,150,${.25*w})`);gl.addColorStop(1,'rgba(255,200,120,0)');ctx.globalAlpha=q[2]<0?1:.45;ctx.fillStyle=gl;ctx.fillRect(cx-R,cy-R,2*R,2*R)}
  ctx.restore();ctx.globalAlpha=1}
+let lastRows=[];
+function timeRows(){
+ const d=T.d,lon=+$('lo').value,C=coords(objVec(S.obj)),L=n360(280.46+.9856474*d),sv=sunVec(d),as=n360(deg(Math.atan2(sv[1],sv[0]))),Hs=n360(LST-as),Hm=n360(LST-L),eot=((L-as+540)%360)-180,ra=C[2][0],H=C[1][0];
+ const om=(125.04-.052954*d)*D,Ls=(280.47+.98565*d)*D,eqeq=(-17.2*Math.sin(om)-1.32*Math.sin(2*Ls))*Math.cos(EPS*D)/15,jd=2451545+d,Tc=(d+69.184/86400)/36525,tdb=.001657*Math.sin((357.53+.98560028*d)*D);
+ const ft=h=>S.sex?hms(h):(((h%24)+24)%24).toFixed(4)+'h',G='#2e9e5b',N='#6b7280',Y='#c99700',c=(t,col)=>({t,col}),zn=Math.round(lon/15),zs=(zn>=0?'+':'')+zn+'h',m=(eot*4).toFixed(2)+' min';
+ const V=(sys,tm,lesson)=>({sys,tm,lesson});
+ return[
+ {id:'ut',g:'Time scales',n:'UT1 ≈ UTC',v:ft(UT),f:'Mean solar time at Greenwich: UT = LMT − λobs/15. UT1 differs from UTC by < 0.9 s (leap seconds).',ch:[c('LMT = '+ft(Hm/15+12),Y),'−',c('λobs/15 = '+ft(lon/15),G),'=',c('UT = '+ft(UT),N)]},
+ {id:'tai',g:'Time scales',n:'TAI',v:ft(UT+37/3600),f:'International atomic time: TAI = UTC + 37 s (accumulated leap seconds).',ch:[c('UTC = '+ft(UT),N),'+',c('37 s',N),'=',c('TAI = '+ft(UT+37/3600),N)]},
+ {id:'tt',g:'Time scales',n:'ET / TT',v:ft(UT+69.184/3600),f:'Terrestrial Time (successor of Ephemeris Time): TT = TAI + 32.184 s = UTC + 69.184 s. ΔT = TT − UT1 ≈ 69 s.',ch:[c('UTC = '+ft(UT),N),'+',c('69.184 s',N),'=',c('TT = '+ft(UT+69.184/3600),N)]},
+ {id:'tdb',g:'Time scales',n:'TDB',v:'TT '+(tdb>=0?'+':'−')+Math.abs(tdb*1000).toFixed(2)+' ms',f:'Barycentric dynamical time: TDB ≈ TT + 0.001657 s · sin g (g = Earth’s mean anomaly), within ±1.7 ms.',ch:[c('TT',N),'+',c((tdb*1000).toFixed(2)+' ms',N),'=',c('TDB',N)]},
+ {id:'gps',g:'Time scales',n:'GPS time',v:ft(UT+18/3600),f:'GPS = TAI − 19 s = UTC + 18 s.',ch:[c('UTC = '+ft(UT),N),'+',c('18 s',N),'=',c('GPS = '+ft(UT+18/3600),N)]},
+ {id:'jd',g:'Time scales',n:'Julian date',v:jd.toFixed(5),f:'JD = 2451545.0 + d, where d = days since J2000.0 (2000-01-01 12:00). MJD = JD − 2400000.5.',ch:[c('d = '+d.toFixed(5),N),'+',c('2451545.0',N),'=',c('JD = '+jd.toFixed(5),N)]},
+ {id:'mjd',g:'Time scales',n:'Modified JD',v:(jd-2400000.5).toFixed(5),f:'MJD = JD − 2400000.5 (days from 1858-11-17 00:00).',ch:[c('JD = '+jd.toFixed(5),N),'−',c('2400000.5',N),'=',c('MJD = '+(jd-2400000.5).toFixed(5),N)]},
+ {id:'tc',g:'Time scales',n:'Julian centuries T',v:Tc.toFixed(9),f:'T = (JD(TT) − 2451545.0) / 36525, used in precession and nutation series.',ch:[c('JD(TT) − 2451545 = '+(d+69.184/86400).toFixed(5)+' d',N),'÷',c('36525',N),'=',c('T = '+Tc.toFixed(9),N)]},
+ {id:'gmst',g:'Sidereal time',n:'GMST',v:ft(T.gmst/15),f:'GMST = 280.46061837° + 360.98564736629° · d (d from UT), converted to hours. Equals LST − λobs.',ch:[c('θ = LST = '+ft(LST/15),CS),'−',c('λobs = '+fd(lon,0,2),G),'=',c('GMST = '+ft(T.gmst/15),CS)],view:V(2,0,2)},
+ {id:'gast',g:'Sidereal time',n:'GAST',v:ft(T.gmst/15+eqeq/3600),f:'Apparent sidereal time: GMST + Δψ·cos ε (equation of the equinoxes, ≈ ±1 s; Δψ ≈ −17.2″ sin Ω − 1.32″ sin 2L). This app’s LST uses GMST.',ch:[c('GMST = '+ft(T.gmst/15),CS),'+',c('Δψ cos ε = '+eqeq.toFixed(3)+' s',N),'=',c('GAST = '+ft(T.gmst/15+eqeq/3600),CS)]},
+ {id:'lst',g:'Sidereal time',n:'LST θ',v:ft(LST/15),f:'LST = GMST + λobs = α + H: the hour angle of the vernal equinox, i.e. the RA now on your meridian.',ch:[c('α = '+fh(ra,3),CR),'+',c('H = '+fh(H,3),CL),'=',c('θ = LST = '+ft(LST/15),CS)],view:V(2,0,2)},
+ {id:'sd',g:'Sidereal time',n:'Sidereal day',v:'23h 56m 4.091s',f:'Sidereal day = 24h / 1.00273790935 (Earth turns 360° relative to the stars; the Sun needs ≈ 4 min more).',ch:[c('24h',N),'÷',c('1.0027379',N),'=',c('23h 56m 4.091s',N)],view:V(null,1,5)},
+ {id:'ast',g:'Solar time',n:'Apparent solar',v:ft(Hs/15+12),f:'Sundial time: AST = H☉ + 12h, with H☉ the hour angle of the true Sun (= θ − α☉).',ch:[c('H☉ = '+fh(Hs,3),CL),'+',c('12h',N),'=',c('AST = '+ft(Hs/15+12),Y)],view:V(null,2,6)},
+ {id:'lmt',g:'Solar time',n:'Local mean time',v:ft(Hm/15+12),f:'LMT = H(mean Sun) + 12h = UT + λobs/15. The mean Sun moves uniformly along the equator.',ch:[c('H(mean) = '+fh(Hm,3),CL),'+',c('12h',N),'=',c('LMT = '+ft(Hm/15+12),Y)],view:V(null,3,7)},
+ {id:'eot',g:'Solar time',n:'Equation of time',v:m,f:'EoT = apparent − mean solar time = α(mean Sun) − α(true Sun); 1° of RA = 4 min.',ch:[c('α(mean) = '+fh(L,3),CR),'−',c('α☉ = '+fh(as,3),CR),'=',c('EoT = '+m,CS)],view:V(null,4,8)},
+ {id:'zone',g:'Civil time',n:'Zone time',v:ft(UT+zn),f:'Nominal zone time = UT + N h, N = round(λobs/15). Legal time may add an offset (e.g. daylight saving).',ch:[c('UT = '+ft(UT),N),'+',c(zs,N),'=',c('Zone time = '+ft(UT+zn),N)]}]}
+function times(){lastRows=timeRows();let g='',h='';
+ lastRows.forEach(r=>{if(r.g!=g){g=r.g;h+=`<tr><th colspan="2">${g}</th></tr>`}h+=`<tr class="tr${r.id===S.tq?' sel':''}" data-id="${r.id}"><td><b>${r.n}</b><div class="fx">${r.f}</div></td><td class="tv">${r.v}</td></tr>`});
+ $('tms2').innerHTML=h;const r=lastRows.find(x=>x.id===S.tq),el=$('eq');
+ if(!r){el.style.display='none';return}
+ el.style.display='flex';el.innerHTML=`<div class="et">${r.n}${r.id=='lst'?' · '+OBJ[S.obj].n:''}</div><div class="ec">`+r.ch.map(x=>typeof x=='string'?`<i>${x}</i>`:`<b style="border-color:${x.col};color:${x.col}">${x.t}</b>`).join('')+`</div>`}
+Object.assign(TIP,{'Z · zenith':`Zenith Z: the point straight above the observer. First vertex of the astronomical triangle.`,'P · NCP':`North celestial pole P: second vertex. Its altitude equals the latitude φ.`});
+Object.assign(TIP2,{PZ:`Side PZ = 90° − φ: the colatitude, the arc from the zenith Z to the north celestial pole P.`,ZX:`Side ZX = z = 90° − h: the zenith distance of the object.`,PX:`Side PX = 90° − δ: the polar distance of the object.`,Z:`Angle at the zenith between the meridian (toward P) and the object. It equals the azimuth A (or 360° − A).`,P:`Angle at the pole between the meridian and the object's hour circle. It equals the hour angle H (or 360° − H).`,X:`Angle at the object between its vertical circle and its hour circle: the parallactic angle q.`});
+const vdot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],vsc=(a,k)=>a.map(x=>x*k),vadd=(a,b)=>a.map((x,i)=>x+b[i]),vsub=(a,b)=>a.map((x,i)=>x-b[i]),vlen=a=>Math.hypot(a[0],a[1],a[2])||1e-9,vnrm=a=>vsc(a,1/vlen(a)),clp=x=>Math.max(-1,Math.min(1,x));
+const slerp=(a,b)=>{const w=Math.acos(clp(vdot(a,b))),sw=Math.sin(w)||1e-9;return t=>vadd(vsc(a,Math.sin((1-t)*w)/sw),vsc(b,Math.sin(t*w)/sw))};
+function triCalc(){const o=objVec(S.obj),Cc=coords(o),X=eq2s(o),Z=[0,0,1],P=[0,Math.cos(PHI*D),Math.sin(PHI*D)];
+ const ang=(V,B,K)=>{const t1=vsub(B,vsc(V,vdot(B,V))),t2=vsub(K,vsc(V,vdot(K,V)));return deg(Math.acos(clp(vdot(t1,t2)/(vlen(t1)*vlen(t2)))))};
+ return{A:Cc[0][0],h:Cc[0][1],H:Cc[1][0],de:Cc[1][1],ra:Cc[2][0],X,Z,P,pz:90-PHI,zx:90-Cc[0][1],px:90-Cc[1][1],aZ:ang(Z,P,X),aP:ang(P,Z,X),aX:ang(X,Z,P)}}
+function angArc(V,B,K){const t1=vsub(B,vsc(V,vdot(B,V))),t2=vsub(K,vsc(V,vdot(K,V))),u=vnrm(t1),w=vnrm(vsub(t2,vsc(u,vdot(t2,u)))),an=Math.acos(clp(vdot(u,vnrm(t2)))),e=.2;
+ return t=>vadd(vsc(V,Math.cos(e)),vsc(vadd(vsc(u,Math.cos(t*an)),vsc(w,Math.sin(t*an))),Math.sin(e)))}
+function fillPts(pts,col,a=.4){ctx.beginPath();pts.forEach((p,i)=>{const q=proj(p);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])});ctx.closePath();ctx.globalAlpha=a;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1}
+let triLast='';
+function drawTri(){
+ const c=triCalc(),{A,h,H,de,ra,X,Z,P}=c,st=S.step,L=S.lay,gk=S.sys,mu=getComputedStyle(document.body).getPropertyValue('--mut'),nm=OBJ[S.obj].n;
+ const CPZ='#2e9e5b',CZX='#17a2b8',CPX='#d6336c',CQ='#5b8def',GR='#9aa3b0';
+ ctx.beginPath();for(let a=0;a<=360;a+=5){const q=proj(scn(0,a,0));a?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();
+ SKYON=0;if(OBJ[S.obj].sun){SKYON=1;skyDome()}
+ ctx.strokeStyle=mu;ctx.globalAlpha=.3;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();ctx.globalAlpha=1;
+ SOLID=0;
+ if(L.grid){for(let lo=0;lo<360;lo+=30)line(t=>scn(gk,lo,t),-90,90,COL[gk]+'55',1);for(let la=-60;la<=60;la+=30)if(la)line(t=>scn(gk,t,la),0,360,COL[gk]+'55',1)}
+ if(L.hor)line(t=>scn(0,t,0),0,360,COL[0],1.8);if(L.mer)line(t=>scn(1,0,t),-90,270,mu,1.2,1,[5,4]);if(L.equ)line(t=>scn(2,t,0),0,360,COL[2],1.8);if(L.ecl)line(t=>scn(3,t,0),0,360,COL[3],1.6);if(L.galp)line(t=>scn(4,t,0),0,360,COL[4],1.4);
+ line(t=>scn(1,H,t),-90,270,GR+'aa',1.2,1,[3,4]);line(t=>scn(0,A,t),-90,270,CZX+'99',1.2,1,[3,4]);
+ const poly=[];[[Z,P],[P,X],[X,Z]].forEach(([a,b])=>{const f=slerp(a,b);for(let i=0;i<24;i++)poly.push(f(i/24))});fillPts(poly,'#78a0e6',.24);
+ SOLID=1;
+ const side=(a,b,col,w,dash,txt)=>{const f=slerp(a,b);line(f,0,1,col,w,1.01,dash);arcLabel(f,.5,txt,col)};
+ const va=(V,B,K,col,txt,w,dash)=>{const g=angArc(V,B,K),pts=[V];for(let i=0;i<=16;i++)pts.push(g(i/16));fillPts(pts,col,col==GR?.2:.4);line(g,0,1,col,w,1.0,dash);arcLabel(g,.5,txt,col)};
+ const k2=st==2,k3=st==3,k5=st==5;
+ // known elements are coloured; unknown ones stay grey (dashed, value hidden) until their step is hovered
+ side(Z,P,CPZ,st==1?6:3.5,null,`PZ = 90° − φ = ${fd(c.pz,0,2)}`);
+ side(X,Z,CZX,st==1?6:3.5,null,`ZX = 90° − h = ${fd(c.zx,0,2)}`);
+ side(P,X,k2?CPX:GR,k2?6:2.5,k2?null:[8,6],`PX = 90° − δ = ${k2?fd(c.px,0,2):'?'}`);
+ if(L.arcs){
+ va(Z,P,X,CL,`Z = ${fd(c.aZ,0,2)} = ${A<=180?'A':'360° − A'}`,st==1?6:3.5);
+ va(P,Z,X,k3?CL:GR,`P = ${k3?fd(c.aP,0,2)+' = '+(H<=180?'H':'360° − H'):'H = ?'}`,k3?6:2.5,k3?null:[6,4]);
+ va(X,Z,P,k5?CQ:GR,`X = q = ${k5?fd(c.aX,0,2):'?'}`,k5?6:2.5,k5?null:[6,4]);
+ if(st==1){line(t=>scn(0,t,0),0,A,CL,4.5,1.03);arcLabel(t=>scn(0,t,0),A/2,`A = ${fd(A,0,2)} from N`,CL,1.2);line(t=>scn(0,A,t),0,h,CB,4.5,1.03);arcLabel(t=>scn(0,A,t),h/2,`h = ${fd(h,1,2)}`,CB,1.0)}
+ if(st==2){line(t=>scn(1,H,t),0,de,CB,4.5,1.03);arcLabel(t=>scn(1,H,t),de/2,`δ = ${fd(de,1,2)}`,CB)}
+ if(st==3){line(t=>scn(1,t,0),0,H,CL,4.5,1.1);arcLabel(t=>scn(1,t,0),H/2,`H = ${fh(H,3)} from meridian`,CL,1.25)}
+ if(st==4){line(t=>scn(2,t,0),0,ra,CR,4.5,1.03);arcLabel(t=>scn(2,t,0),ra/2,`α = ${fh(ra,3)}`,CR,1.12);line(t=>scn(1,t,0),0,H,CL,4,1.12);arcLabel(t=>scn(1,t,0),H/2,`H = ${fh(H,3)}`,CL,1.28);line(t=>scn(1,t,0),0,LST,CS,4,1.24);arcLabel(t=>scn(1,t,0),LST/2,`θ = ${fh(LST,3)}`,CS,1.4);labOut(scn(2,0,0),'♈ vernal equinox',COL[2])}
+ }
+ SOLID=0;
+ const xq=proj(X);ctx.globalAlpha=xq[2]<0?1:.5;drawBody(xq);ctx.globalAlpha=1;
+ labOut(Z,'Z · zenith',CPZ);labOut(P,'P · NCP',COL[2]);labOut(X,'X · '+nm,CPX);
+ FL()}
+function triPanel(){const c=triCalc(),sn=x=>Math.sin(x*D),cs=x=>Math.cos(x*D),f=x=>x.toFixed(4),{A,h,H,de,ra}=c,ph=PHI,east=sn(A)>0,nm=OBJ[S.obj].n;
+ const s1=sn(ph)*sn(h),s2=cs(ph)*cs(h)*cs(A),sd=clp(s1+s2),dl=deg(Math.asin(sd)),cd=Math.cos(Math.asin(sd))||1e-9,chv=clp((sn(h)-sn(ph)*sd)/(cs(ph)*cd||1e-9)),Ha=deg(Math.acos(chv)),Hc=east?360-Ha:Ha;
+ const K={A:CL,h:CB,'δ':CB,H:CL,'α':CR,'θ':CS,'φ':'#2e9e5b'},s=k=>`<span style="color:${K[k]};font-weight:700">${k}</span>`,cl=(t,k)=>`<span style="color:${K[k]};font-weight:700">${t}</span>`;
+ const st=(i,t,b,sc)=>`<div class="stp${S.step===i?' sel':''}" data-s="${i}" style="--sc:${sc||'transparent'}"><b>${t}</b>${b}</div>`,fm=t=>`<div class="fm">${t}</div>`;
+ const html=`<div class="box"><b>Horizontal → Equatorial</b><div class="def" style="margin-top:3px">Solve the astronomical triangle <b>Z P X</b> for <b>${nm}</b>. Unknowns are grey; hover a step to reveal the element it finds.</div>${fm(`Given: ${s('φ')} = ${fd(ph,1,2)} · ${s('A')} = ${fd(A,0,2)} · ${s('h')} = ${fd(h,1,2)}<br>${s('θ')} = LST = ${fh(LST,3)}`)}</div>`+
+ st(0,'The triangle Z P X',`<div class="def">Z = zenith, P = north celestial pole, X = object. Sides: PZ = 90° − ${s('φ')}, ZX = 90° − ${s('h')} (zenith distance), PX = 90° − ${s('δ')}. Angles: Z = ${s('A')}, P = ${s('H')}, X = q (parallactic angle).</div>`)+
+ st(1,`1 · Known: ${s('A')}, ${s('h')}, ${s('φ')}`,fm(`PZ = 90° − ${s('φ')} = 90° − ${fd(ph,0,2)} = ${fd(c.pz,0,2)}<br>ZX = 90° − ${s('h')} = 90° − ${fd(h,0,2)} = ${fd(c.zx,0,2)}<br>∠Z = ${s('A')}${A<=180?'':' → 360° − A'} = ${fd(c.aZ,0,2)}<br>(object ${east?'east':'west'} of the meridian)`),`linear-gradient(${CL},${CB})`)+
+ st(2,`2 · Cosine rule → ${s('δ')}`,fm(`cos PX = cos PZ cos ZX + sin PZ sin ZX cos Z<br>sin ${s('δ')} = sin ${s('φ')} sin ${s('h')} + cos ${s('φ')} cos ${s('h')} cos ${s('A')}<br>= ${f(sn(ph))}·${f(sn(h))} + ${f(cs(ph))}·${f(cs(h))}·${f(cs(A))}<br>= ${f(s1)} + ${f(s2)} = ${f(sd)}<br>${cl('δ = '+fd(dl,1,2),'δ')}`),CB)+
+ st(3,`3 · Cosine rule → ${s('H')}`,fm(`cos ${s('H')} = (sin ${s('h')} − sin ${s('φ')} sin ${s('δ')}) / (cos ${s('φ')} cos ${s('δ')})<br>= (${f(sn(h))} − ${f(sn(ph))}·${f(sd)}) / (${f(cs(ph))}·${f(cd)})<br>= ${f(chv)} → |H| = ${fd(Ha,0,2)}<br>sin A ${east?'> 0 (east): H = 360° − |H|':'< 0 (west): H = |H|'}<br>${cl('H = '+fd(Hc,0,2)+' = '+fh(Hc,3),'H')}`),CL)+
+ st(4,`4 · Sidereal time → ${s('α')}`,fm(`${s('θ')} = LST = GMST + λobs = ${fh(LST,3)}<br>${s('α')} = ${s('θ')} − ${s('H')} = ${fh(LST,3)} − ${fh(Hc,3)}<br>${cl('α = '+fh(ra,3)+' (mod 24h)','α')}`),CR)+
+ st(5,'5 · Parallactic angle q',fm(`sin q = sin ${s('A')} cos ${s('φ')} / cos ${s('δ')} = ${f(sn(A)*cs(ph)/cd)}<br>(sine rule; the triangle gives q = ∠X)<br><b>q = ${fd(c.aX,0,2)}</b>`))+
+ `<div class="box"><b>Result</b>${fm(`(${s('A')}, ${s('h')}) → (${s('δ')}, ${s('H')}) → ${s('α')}<br>${s('δ')} = ${fd(dl,1,2)}<br>${s('H')} = ${fh(Hc,3)}<br>${s('α')} = ${fh(ra,3)}`)}</div>`;
+ if(html!==triLast){triLast=html;$('tri').innerHTML=html}}
+Object.assign(TIP2,{'Δα☉':`Right-ascension advance of the Sun in one day (≈ 0.9856° on average, 3 m 56 s of time). Earth must turn this much beyond one sidereal day to bring the Sun back to the meridian, so solar day = sidereal day + Δα☉/15.`});
+function arrowEnd(f,t0,t1,col,k=1){const dt=t1>=t0?-2:2,p1=proj(f(t1),k),p0=proj(f(t1+dt),k);let dx=p1[0]-p0[0],dy=p1[1]-p0[1];const L=Math.hypot(dx,dy)||1;dx/=L;dy/=L;
+ ctx.save();ctx.globalAlpha=1;ctx.fillStyle=col;ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=1;ctx.lineJoin='round';ctx.beginPath();ctx.moveTo(p1[0]+dx*11,p1[1]+dy*11);ctx.lineTo(p1[0]-dx*2+dy*7,p1[1]-dy*2-dx*7);ctx.lineTo(p1[0]-dx*2-dy*7,p1[1]-dy*2+dx*7);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore()}
+function sidInset(q,dA){LBL.push(()=>{const r=100,ix=Math.max(r+10,Math.min(innerWidth-r-10,q[0]+190)),iy=Math.max(r+50,Math.min(innerHeight-r-70,q[1]-170)),cs=getComputedStyle(document.body),R0=CR,
+  dx=q[0]-ix,dy=q[1]-iy,L=Math.hypot(dx,dy)||1,ax=ix,ay=iy+64,rr=102,a0=-104*D,a1=-76*D,sec=Math.abs(dA)*240,mm=Math.floor(sec/60),ss=(sec-mm*60).toFixed(1),N=Math.round(2*rr*Math.sin(14*D)/(Math.abs(dA)*D*R||1));
+  ctx.save();ctx.globalAlpha=1;ctx.strokeStyle=R0;ctx.lineWidth=1.3;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(q[0],q[1]);ctx.lineTo(ix+dx/L*r,iy+dy/L*r);ctx.stroke();ctx.setLineDash([]);
+  ctx.beginPath();ctx.arc(ix,iy,r,0,7);ctx.fillStyle=cs.getPropertyValue('--pan');ctx.fill();ctx.strokeStyle=R0;ctx.lineWidth=2;ctx.stroke();
+  ctx.save();ctx.beginPath();ctx.arc(ix,iy,r-1,0,7);ctx.clip();
+  ctx.beginPath();ctx.moveTo(ax,ay);ctx.arc(ax,ay,rr,a0,a1);ctx.closePath();ctx.fillStyle=hexa(R0,.22);ctx.fill();
+  ctx.strokeStyle=hexa(R0,.8);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+rr*Math.cos(a0),ay+rr*Math.sin(a0));ctx.moveTo(ax,ay);ctx.lineTo(ax+rr*Math.cos(a1),ay+rr*Math.sin(a1));ctx.stroke();
+  ctx.strokeStyle=R0;ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.arc(ax,ay,rr,a0,a1);ctx.stroke();ctx.lineCap='butt';
+  const px=ax+rr*Math.cos(a1),py=ay+rr*Math.sin(a1),tx=-Math.sin(a1),ty=Math.cos(a1);ctx.fillStyle=R0;ctx.beginPath();ctx.moveTo(px+tx*12,py+ty*12);ctx.lineTo(px-tx*2-ty*7,py-ty*2+tx*7);ctx.lineTo(px-tx*2+ty*7,py-ty*2-tx*7);ctx.closePath();ctx.fill();
+  [[a0,'today'],[a1,'+1 day']].forEach(([a,t],i)=>{const x=ax+rr*Math.cos(a),y=ay+rr*Math.sin(a);ctx.fillStyle='#f5b400';ctx.beginPath();ctx.arc(x,y,5,0,7);ctx.fill();ctx.strokeStyle='rgba(0,0,0,.4)';ctx.lineWidth=1;ctx.stroke()});
+  ctx.restore();
+  ctx.fillStyle=cs.color;ctx.textAlign='center';ctx.font='600 11px system-ui,sans-serif';ctx.fillText(`Sun’s motion in one day (×${N})`,ix,iy-r+16);
+  ctx.font='11px system-ui,sans-serif';ctx.fillText('today',ix-26,iy-r+33);ctx.fillText('+1 day',ix+26,iy-r+33);
+  ctx.font='700 14px system-ui,sans-serif';ctx.fillStyle=R0;ctx.fillText(`Δα☉ = ${fd(dA,0,3)}`,ix,iy+30);
+  ctx.font='12px system-ui,sans-serif';ctx.fillStyle=cs.color;ctx.fillText(`= ${mm} m ${ss} s of time`,ix,iy+48);ctx.fillText('solar day = sidereal day + Δα☉/15',ix,iy+r-10);
+  ctx.restore();ctx.textAlign='start';
+  HOT.push({x0:ix-r,y0:iy-r,x1:ix+r,y1:iy+r,t:'Δα☉',d:TIP2['Δα☉']})})}
 function renderSide(){const g=(a,b)=>LES.slice(a,b).map((l,j)=>`<button data-i="${a+j}" class="${a+j==S.lesson?'on':''}">${l[0]}</button>`).join('');
- $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5)+'<div class="gl">Time</div>'+g(5,9);
+ $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5);
  $('card').innerHTML=`<b>${LES[S.lesson][0]}</b><p>${TXT[S.lesson]}</p><div class="fm">${FM[S.lesson]}</div><div id="live"></div><canvas id="pv" width="600" height="360"></canvas>`}
 $('les').onclick=e=>{const i=e.target.dataset.i;if(i!=null)setLesson(+i)};
 function side(){const i=S.lesson,C=coords(objVec(S.obj)),d=T.d,L=n360(280.46+.9856474*d),sv=sunVec(d),as=n360(deg(Math.atan2(sv[1],sv[0]))),Hs=n360(LST-as),Hm=n360(LST-L),eot=((L-as+540)%360)-180;
@@ -375,6 +490,10 @@ $('ssn').onclick=e=>{const b=e.target.closest('button');if(!b)return;DAY=+b.data
 $('now').onclick=()=>{const n=new Date();UT=n.getUTCHours()+n.getUTCMinutes()/60+n.getUTCSeconds()/3600;DAY=Math.min(YL-1,Math.max(0,Math.round((Date.UTC(YR,n.getUTCMonth(),n.getUTCDate())-Date.UTC(YR,0,1))/864e5)));$('ut').value=UT;$('dy').value=DAY;upd();ui.fx()};
 $('fmt').onclick=e=>{const f=e.target.dataset.f;if(f==null)return;S.sex=+f;document.querySelectorAll('#fmt button').forEach(b=>b.classList.toggle('on',b.dataset.f==f));dirty=1};
 $('sky').oninput=()=>{SKYOP=$('sky').value/100;$('skyO').textContent=$('sky').value+'%';dirty=1};
+$('tms2').onpointerdown=e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;const id=tr.dataset.id,r=lastRows.find(x=>x.id===id);S.tq=S.tq===id?null:id;if(S.tq&&r&&r.view){if(r.view.sys!=null)S.sys=r.view.sys;S.tm=r.view.tm;S.lesson=r.view.lesson;renderSide()}dirty=1};
+$('tabs').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tab=+t;document.body.classList.toggle('tr',S.tab==1);document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));dirty=1};
+const setStep=e=>{const b=e.target.closest('[data-s]');if(!b)return;const i=+b.dataset.s;if(S.step!==i){S.step=i;dirty=1}};
+$('tri').onpointerover=setStep;$('tri').onpointerdown=setStep;$('tri').onpointerleave=e=>{if(e.pointerType=='mouse'&&S.step){S.step=0;dirty=1}};
 $('dy').max=YL-1;$('ut').value=UT;$('dy').value=DAY;
 upd();ui();renderSide();requestAnimationFrame(loop);
 </script></body></html>
