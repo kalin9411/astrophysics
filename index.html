@@ -57,11 +57,12 @@ h1,.sub{display:none}
 #tri .box,.stp{background:color-mix(in srgb,var(--pan) 90%,transparent);backdrop-filter:blur(6px)}
 .stp{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer}.stp.sel{border-color:var(--ac);box-shadow:inset 0 0 0 1px var(--ac)}.stp>b{display:block;margin-bottom:3px}.stp .fm{margin-top:4px}
 .stp{position:relative;padding-left:16px}.stp::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:4px;border-radius:2px;background:var(--sc,transparent)}.stp:hover{border-color:var(--ac)}
+#gf{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 54px);z-index:2;display:none;pointer-events:none;text-align:center;background:color-mix(in srgb,var(--pan) 92%,transparent);border:1px solid var(--bd);border-radius:10px;padding:6px 14px;max-width:max(440px,calc(100vw - 800px));font:600 15px/1.5 system-ui,sans-serif}body.tr #gf{display:block}#gf small{display:block;font-weight:400;color:var(--mut);font-size:11px}#gf .nm{font-weight:400;font-size:12px;color:var(--mut)}
 </style></head><body>
 <h1>Celestial Sphere Lab</h1>
 <div class="sub">Drag to rotate · scroll to zoom · choose the object in the right panel Everything is drawn for an observer at the centre.</div>
 <main>
-<div class="tabs" id="tabs"><button data-t="0" class="on">View</button><button data-t="1">Horizontal → Equatorial</button></div>
+<div class="tabs" id="tabs"><button data-t="0" class="on">View</button><button data-t="1">Horizontal → Equatorial</button><button data-t="2">Equatorial → Galactic</button></div>
 <button class="tgl" id="tl" title="Show / hide lessons">☰</button><button class="tgl" id="tr" title="Show / hide controls">⚙</button>
 <aside id="lft"><div class="box"><b>Angle format</b><div class="seg" id="fmt" style="margin-top:6px"><button data-f="0">Decimal</button><button data-f="1" class="on">h m s · ° ′ ″</button></div></div><div class="box"><div class="les" id="les" style="margin-top:0"></div></div><div class="box" id="card"></div></aside>
 <aside id="tri"></aside>
@@ -85,7 +86,7 @@ h1,.sub{display:none}
 <div class="box vw"><b>Derived quantities</b><table id="der"></table></div>
 <div class="box vw"><b>Times</b><div class="def">Click a row to show the angles of its formula on the sphere.</div><table id="tms2"></table></div>
 </section></main>
-<div id="eq"></div><div id="tip"></div>
+<div id="eq"></div><div id="gf"></div><div id="tip"></div>
 <script>
 const D=Math.PI/180,$=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
 const EPS=23.4393,M=[[-0.0548755604,-0.8734370902,-0.4838350155],[0.4941094279,-0.4448296300,0.7469822445],[-0.8676661490,-0.1980763734,0.4559837762]];
@@ -180,7 +181,7 @@ function draw(){
  const dpr=devicePixelRatio||1,w=innerWidth,hh=innerHeight;if(cv.width!=Math.round(w*dpr)||cv.height!=Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr)}
  ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=hh/2;R=Math.min(w,hh)*.34*S.zoom;
  FG=getComputedStyle(document.body).color;const mut=getComputedStyle(document.body).getPropertyValue('--mut');
- ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];if(S.tab==1){drawTri();triPanel();return}ctx.textBaseline='alphabetic';
+ ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];if(S.tab==1){drawTri();triPanel();return}if(S.tab==2){drawGal();galPanel();return}ctx.textBaseline='alphabetic';
  // horizon disc
  ctx.beginPath();for(let a=0;a<=360;a+=5){const q=proj(scn(0,a,0));a?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}
  ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();SKYON=0;if(OBJ[S.obj].sun||S.tm==2||S.tm==4){SKYON=1;skyDome()}
@@ -359,7 +360,7 @@ function triCalc(){const o=objVec(S.obj),Cc=coords(o),X=eq2s(o),Z=[0,0,1],P=[0,M
 function angArc(V,B,K){const t1=vsub(B,vsc(V,vdot(B,V))),t2=vsub(K,vsc(V,vdot(K,V))),u=vnrm(t1),w=vnrm(vsub(t2,vsc(u,vdot(t2,u)))),an=Math.acos(clp(vdot(u,vnrm(t2)))),e=.2;
  return t=>vadd(vsc(V,Math.cos(e)),vsc(vadd(vsc(u,Math.cos(t*an)),vsc(w,Math.sin(t*an))),Math.sin(e)))}
 function fillPts(pts,col,a=.4){ctx.beginPath();pts.forEach((p,i)=>{const q=proj(p);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])});ctx.closePath();ctx.globalAlpha=a;ctx.fillStyle=col;ctx.fill();ctx.globalAlpha=1}
-let triLast='';
+let triLast='',gfLast='';
 function drawTri(){
  const c=triCalc(),{A,h,H,de,ra,X,Z,P}=c,st=S.step,L=S.lay,gk=S.sys,mu=getComputedStyle(document.body).getPropertyValue('--mut'),nm=OBJ[S.obj].n;
  const CPZ='#2e9e5b',CZX='#17a2b8',CPX='#d6336c',CQ='#5b8def',GR='#9aa3b0';
@@ -383,13 +384,17 @@ function drawTri(){
  va(Z,P,X,CL,`Z = ${fd(c.aZ,0,2)} = ${A<=180?'A':'360° − A'}`,st==1?6:3.5);
  va(P,Z,X,k3?CL:GR,`P = ${k3?fd(c.aP,0,2)+' = '+(H<=180?'H':'360° − H'):'H = ?'}`,k3?6:2.5,k3?null:[6,4]);
  va(X,Z,P,k5?CQ:GR,`X = q = ${k5?fd(c.aX,0,2):'?'}`,k5?6:2.5,k5?null:[6,4]);
- if(st==1){line(t=>scn(0,t,0),0,A,CL,4.5,1.03);arcLabel(t=>scn(0,t,0),A/2,`A = ${fd(A,0,2)} from N`,CL,1.2);line(t=>scn(0,A,t),0,h,CB,4.5,1.03);arcLabel(t=>scn(0,A,t),h/2,`h = ${fd(h,1,2)}`,CB,1.0)}
- if(st==2){line(t=>scn(1,H,t),0,de,CB,4.5,1.03);arcLabel(t=>scn(1,H,t),de/2,`δ = ${fd(de,1,2)}`,CB)}
- if(st==3){line(t=>scn(1,t,0),0,H,CL,4.5,1.1);arcLabel(t=>scn(1,t,0),H/2,`H = ${fh(H,3)} from meridian`,CL,1.25)}
- if(st==4){line(t=>scn(2,t,0),0,ra,CR,4.5,1.03);arcLabel(t=>scn(2,t,0),ra/2,`α = ${fh(ra,3)}`,CR,1.12);line(t=>scn(1,t,0),0,H,CL,4,1.12);arcLabel(t=>scn(1,t,0),H/2,`H = ${fh(H,3)}`,CL,1.28);line(t=>scn(1,t,0),0,LST,CS,4,1.24);arcLabel(t=>scn(1,t,0),LST/2,`θ = ${fh(LST,3)}`,CS,1.4);labOut(scn(2,0,0),'♈ vernal equinox',COL[2])}
+ if(st==1){hiG(t=>scn(0,t,0),0,A,CL,`A = ${fd(A,0,2)} from N`);hiG(t=>scn(0,A,t),0,h,CB,`h = ${fd(h,1,2)}`)}
+ if(st==2)hiG(t=>scn(1,H,t),0,de,CB,`δ = ${fd(de,1,2)}`);
+ if(st==3)hiG(t=>scn(1,t,0),0,H,CL,`H = ${fh(H,3)} from meridian`);
+ if(st==4){hiG(t=>scn(2,t,0),0,ra,CR,`α = ${fh(ra,3)}`);
+  bandG(t=>scn(1,t,0),0,H,CL,1,1.16);line(t=>scn(1,t,0),0,H,CL,3,1.16);arrowEnd(t=>scn(1,t,0),0,H,CL,1.16);arcLabel(t=>scn(1,t,0),H/2,`H = ${fh(H,3)}`,CL,1.28);
+  bandG(t=>scn(1,t,0),0,LST,CS,1,1.32);line(t=>scn(1,t,0),0,LST,CS,3,1.32);arrowEnd(t=>scn(1,t,0),0,LST,CS,1.32);arcLabel(t=>scn(1,t,0),LST/2,`θ = ${fh(LST,3)}`,CS,1.44);
+  labOut(scn(2,0,0),'♈ vernal equinox',COL[2])}
  }
  SOLID=0;
  const xq=proj(X);ctx.globalAlpha=xq[2]<0?1:.5;drawBody(xq);ctx.globalAlpha=1;
+ [['N',0],['E',90],['S',180],['W',270]].forEach(([t,az])=>labText(scn(0,az,0),t,COL[0]));
  labOut(Z,'Z · zenith',CPZ);labOut(P,'P · NCP',COL[2]);labOut(X,'X · '+nm,CPX);
  FL()}
 function triPanel(){const c=triCalc(),sn=x=>Math.sin(x*D),cs=x=>Math.cos(x*D),f=x=>x.toFixed(4),{A,h,H,de,ra}=c,ph=PHI,east=sn(A)>0,nm=OBJ[S.obj].n;
@@ -404,6 +409,16 @@ function triPanel(){const c=triCalc(),sn=x=>Math.sin(x*D),cs=x=>Math.cos(x*D),f=
  st(4,`4 · Sidereal time → ${s('α')}`,fm(`${s('θ')} = LST = GMST + λobs = ${fh(LST,3)}<br>${s('α')} = ${s('θ')} − ${s('H')} = ${fh(LST,3)} − ${fh(Hc,3)}<br>${cl('α = '+fh(ra,3)+' (mod 24h)','α')}`),CR)+
  st(5,'5 · Parallactic angle q',fm(`sin q = sin ${s('A')} cos ${s('φ')} / cos ${s('δ')} = ${f(sn(A)*cs(ph)/cd)}<br>(sine rule; the triangle gives q = ∠X)<br><b>q = ${fd(c.aX,0,2)}</b>`))+
  `<div class="box"><b>Result</b>${fm(`(${s('A')}, ${s('h')}) → (${s('δ')}, ${s('H')}) → ${s('α')}<br>${s('δ')} = ${fd(dl,1,2)}<br>${s('H')} = ${fh(Hc,3)}<br>${s('α')} = ${fh(ra,3)}`)}</div>`;
+ const GRY='#9aa3b0',SPZ='#2e9e5b',SZX='#17a2b8',SPX='#d6336c',g=(t,k)=>`<span style="color:${k}">${t}</span>`,n=x=>fd(x,0,2),vs=S.step,
+  pz=`90°−${s('φ')}`,zx=`90°−${s('h')}`,px=`90°−${s('δ')}`,zA=A<=180?s('A'):`360°−${s('A')}`,pH=H<=180?s('H'):`360°−${s('H')}`;
+ let T0='Spherical law of cosines (Gauss)',l1,l2,l3='';
+ if(vs==1||vs==2){l1=`cos${vs==2?`(${px})`:' '+g('PX',GRY)} = cos(${pz})·cos(${zx}) + sin(${pz})·sin(${zx})·cos(${zA})`;l2=`cos(${vs==2?n(c.px):'?'}) = cos(${n(c.pz)})·cos(${n(c.zx)}) + sin(${n(c.pz)})·sin(${n(c.zx)})·cos(${n(c.aZ)})`;l3=vs==1?'PX is unknown (grey): it is found in step 2':'solving for the side PX opposite the angle at Z'}
+ else if(vs==3){l1=`cos(${zx}) = cos(${pz})·cos(${px}) + sin(${pz})·sin(${px})·cos(${pH})`;l2=`cos(${n(c.zx)}) = cos(${n(c.pz)})·cos(${n(c.px)}) + sin(${n(c.pz)})·sin(${n(c.px)})·cos(${n(c.aP)})`;l3='same rule with ZX opposite the angle at P; solve for H'}
+ else if(vs==4){T0='Sidereal time';l1=`${s('α')} = ${s('θ')} − ${s('H')}`;l2=`${fh(c.ra,3)} = ${fh(LST,3)} − ${fh(c.H,3)}`;l3='not a triangle rule: the RA is the sidereal time minus the hour angle'}
+ else if(vs==5){T0='Spherical law of sines';l1=`sin q / sin(${pz}) = sin(${pH}) / sin(${zx})`;l2=`sin(${n(c.aX)}) / sin(${n(c.pz)}) = sin(${n(c.aP)}) / sin(${n(c.zx)})`;l3='ratio of the sine of each angle to the sine of the opposite side'}
+ else{l1=`cos ${g('PX',SPX)} = cos ${g('PZ',SPZ)} · cos ${g('ZX',SZX)} + sin ${g('PZ',SPZ)} · sin ${g('ZX',SZX)} · cos ${g('Z',CL)}`;l2='';l3='PX is the side opposite the angle Z · hover a step to fill in the slots'}
+ const gh=`<small>${T0}</small><div>${l1}</div>${l2?`<div class="nm">${l2}</div>`:''}<small>${l3}</small>`;
+ if(gh!==gfLast){gfLast=gh;$('gf').innerHTML=gh}
  if(html!==triLast){triLast=html;$('tri').innerHTML=html}}
 Object.assign(TIP2,{'Δα☉':`Right-ascension advance of the Sun in one day (≈ 0.9856° on average, 3 m 56 s of time). Earth must turn this much beyond one sidereal day to bring the Sun back to the meridian, so solar day = sidereal day + Δα☉/15.`});
 function arrowEnd(f,t0,t1,col,k=1){const dt=t1>=t0?-2:2,p1=proj(f(t1),k),p0=proj(f(t1+dt),k);let dx=p1[0]-p0[0],dy=p1[1]-p0[1];const L=Math.hypot(dx,dy)||1;dx/=L;dy/=L;
@@ -425,6 +440,67 @@ function sidInset(q,dA){LBL.push(()=>{const r=100,ix=Math.max(r+10,Math.min(inne
   ctx.font='12px system-ui,sans-serif';ctx.fillStyle=cs.color;ctx.fillText(`= ${mm} m ${ss} s of time`,ix,iy+48);ctx.fillText('solar day = sidereal day + Δα☉/15',ix,iy+r-10);
   ctx.restore();ctx.textAlign='start';
   HOT.push({x0:ix-r,y0:iy-r,x1:ix+r,y1:iy+r,t:'Δα☉',d:TIP2['Δα☉']})})}
+function wedgeG(f,t0,t1,col,kk=1){ctx.beginPath();ctx.moveTo(cx,cy);const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n),kk);ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,0,cx,cy,R*1.05*kk);gd.addColorStop(0,hexa(col,.05));gd.addColorStop(.6,hexa(col,.26));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()}
+function bandG(f,t0,t1,col,k0,k1){const n=Math.max(8,Math.ceil(Math.abs(t1-t0)/4));ctx.beginPath();for(let i=0;i<=n;i++){const q=proj(f(t0+(t1-t0)*i/n),k1);i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}for(let i=n;i>=0;i--){const q=proj(f(t0+(t1-t0)*i/n),k0);ctx.lineTo(q[0],q[1])}ctx.closePath();const gd=ctx.createRadialGradient(cx,cy,R*k0,cx,cy,R*k1);gd.addColorStop(0,hexa(col,.12));gd.addColorStop(1,hexa(col,.55));ctx.fillStyle=gd;ctx.fill();ctx.strokeStyle=hexa(col,.75);ctx.lineWidth=1.2;ctx.stroke()}
+function hiG(f,t0,t1,col,txt){wedgeG(f,t0,t1,col);line(f,t0,t1,col+'55',13,1.02);line(f,t0,t1,col,4.5,1.02);arrowEnd(f,t0,t1,col,1.02);arcLabel(f,(t0+t1)/2,txt,col)}
+const AL=192.85948,DLG=27.12825,LNCP=122.93192;
+Object.assign(TIP,{'G · NGP':`North galactic pole G (α = 12h 51m, δ = +27.13°): pole of the galactic system. Second vertex of the triangle.`});
+Object.assign(TIP2,{PG:`Side PG = 90° − δG: the fixed distance from the north celestial pole to the north galactic pole (62.87°).`,GX:`Side GX = 90° − b: the polar distance of the object from the north galactic pole.`,'∠P':`Angle at the celestial pole between the hour circles of G and X: α − αG.`,'∠G':`Angle at the galactic pole between the directions to P and to X: lP − l (lP = 122.93°, the galactic longitude of the NCP).`,'∠X':`Angle at the object between the directions to P and to G (position angle of galactic north).`});
+function galCalc(){const o=objVec(S.obj),Cc=coords(o),X=eq2s(o),P=eq2s([0,0,1]),G=eq2s(galEq([0,0,1]));
+ const ang=(V,B,K)=>{const t1=vsub(B,vsc(V,vdot(B,V))),t2=vsub(K,vsc(V,vdot(K,V)));return deg(Math.acos(clp(vdot(t1,t2)/(vlen(t1)*vlen(t2)))))};
+ return{ra:Cc[2][0],de:Cc[2][1],l:Cc[4][0],b:Cc[4][1],X,P,G,pg:90-DLG,px:90-Cc[2][1],gx:90-Cc[4][1],aP:ang(P,G,X),aG:ang(G,P,X),aX:ang(X,P,G)}}
+function drawGal(){
+ const c=galCalc(),{ra,de,l,b,X,P,G}=c,st=S.step,L=S.lay,gk=S.sys,mu=getComputedStyle(document.body).getPropertyValue('--mut'),nm=OBJ[S.obj].n;
+ const CPX='#d6336c',CQ='#5b8def',GR='#9aa3b0';
+ ctx.beginPath();for(let a=0;a<=360;a+=5){const q=proj(scn(0,a,0));a?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1])}ctx.fillStyle='rgba(46,158,91,.14)';ctx.fill();
+ SKYON=0;if(OBJ[S.obj].sun){SKYON=1;skyDome()}
+ ctx.strokeStyle=mu;ctx.globalAlpha=.3;ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.stroke();ctx.globalAlpha=1;
+ SOLID=0;
+ if(L.grid){for(let lo=0;lo<360;lo+=30)line(t=>scn(gk,lo,t),-90,90,COL[gk]+'55',1);for(let la=-60;la<=60;la+=30)if(la)line(t=>scn(gk,t,la),0,360,COL[gk]+'55',1)}
+ if(L.hor)line(t=>scn(0,t,0),0,360,COL[0],1.8);if(L.mer)line(t=>scn(1,0,t),-90,270,mu,1.2,1,[5,4]);if(L.ecl)line(t=>scn(3,t,0),0,360,COL[3],1.6);
+ line(t=>scn(2,t,0),0,360,COL[2],1.8);line(t=>scn(4,t,0),0,360,COL[4],2.4);
+ const poly=[];[[P,G],[G,X],[X,P]].forEach(([a,b2])=>{const f=slerp(a,b2);for(let i=0;i<24;i++)poly.push(f(i/24))});fillPts(poly,'#78a0e6',.24);
+ SOLID=1;
+ const side=(a,b2,col,w,dash,txt)=>{const f=slerp(a,b2);line(f,0,1,col,w,1.01,dash);arcLabel(f,.5,txt,col)};
+ const va=(V,B,K,col,txt,w,dash)=>{const g=angArc(V,B,K),pts=[V];for(let i=0;i<=16;i++)pts.push(g(i/16));fillPts(pts,col,col==GR?.2:.4);line(g,0,1,col,w,1.0,dash);arcLabel(g,.5,txt,col)};
+ const k2=st==2,k3=st==3,k4=st==4;
+ side(P,G,CS,st==1?6:3.5,null,`PG = 90° − δG = ${fd(c.pg,0,2)}`);
+ side(P,X,CPX,st==1?6:3.5,null,`PX = 90° − δ = ${fd(c.px,0,2)}`);
+ side(G,X,k2?CB:GR,k2?6:2.5,k2?null:[8,6],`GX = 90° − b = ${k2?fd(c.gx,0,2):'?'}`);
+ if(L.arcs){
+  va(P,G,X,CR,`∠P = ${fd(c.aP,0,2)} = |α − αG|`,st==1?6:3.5);
+  va(G,P,X,k3?CL:GR,`∠G = ${k3?fd(c.aG,0,2)+' = |lP − l|':'?'}`,k3?6:2.5,k3?null:[6,4]);
+  va(X,P,G,k4?CQ:GR,`∠X = ${k4?fd(c.aX,0,2):'?'}`,k4?6:2.5,k4?null:[6,4]);
+  if(st==1){hiG(t=>scn(2,t,0),0,ra,CR,`α = ${fh(ra,3)}`);hiG(t=>scn(2,ra,t),0,de,CB,`δ = ${fd(de,1,2)}`)}
+  if(st==2)hiG(t=>scn(4,l,t),0,b,CB,`b = ${fd(b,1,2)}`);
+  if(st==3){hiG(t=>scn(4,t,0),0,l,CL,`l = ${fd(l,0,2)} from GC`);labOut(eq2s(galEq(sph(0,0))),'Gal. centre',COL[4])}
+ }
+ SOLID=0;
+ const xq=proj(X);ctx.globalAlpha=xq[2]<0?1:.5;drawBody(xq);ctx.globalAlpha=1;
+ [['N',0],['E',90],['S',180],['W',270]].forEach(([t,az])=>labText(scn(0,az,0),t,COL[0]));
+ labOut(P,'P · NCP',COL[2]);labOut(G,'G · NGP',CS);labOut(X,'X · '+nm,CPX);
+ FL()}
+function galPanel(){const c=galCalc(),sn=x=>Math.sin(x*D),cs=x=>Math.cos(x*D),f=x=>x.toFixed(4),{ra,de}=c,nm=OBJ[S.obj].n;
+ const da=ra-AL,sb=clp(sn(de)*sn(DLG)+cs(de)*cs(DLG)*cs(da)),bb=deg(Math.asin(sb)),cb=Math.cos(Math.asin(sb))||1e-9,yv=cs(de)*sn(da),xv=sn(de)*cs(DLG)-cs(de)*sn(DLG)*cs(da),dl=deg(Math.atan2(yv,xv)),lc=n360(LNCP-dl),sx=clp(sn(c.aG)*cs(DLG)/(cs(de)||1e-9));
+ const K={'α':CR,'δ':CB,b:CB,l:CL},s=k=>`<span style="color:${K[k]};font-weight:700">${k}</span>`,sg=k=>`<span style="color:${K[k]};font-weight:700">${k}<sub>G</sub></span>`,lp=`<span style="color:${CL};font-weight:700">l<sub>P</sub></span>`,cl=(t,k)=>`<span style="color:${K[k]};font-weight:700">${t}</span>`;
+ const st=(i,t,b,sc)=>`<div class="stp${S.step===i?' sel':''}" data-s="${i}" style="--sc:${sc||'transparent'}"><b>${t}</b>${b}</div>`,fm=t=>`<div class="fm">${t}</div>`;
+ const html=`<div class="box"><b>Equatorial → Galactic</b><div class="def" style="margin-top:3px">Solve the triangle <b>P G X</b> (north celestial pole, north galactic pole, object) for <b>${nm}</b>. Unknowns are grey; hover a step to reveal what it finds.</div>${fm(`Given: ${s('α')} = ${fh(ra,3)} · ${s('δ')} = ${fd(de,1,2)}<br>Frame constants: ${sg('α')} = ${fd(AL,0,3)} · ${sg('δ')} = ${fd(DLG,1,3)}<br>${lp} = ${fd(LNCP,0,3)} (galactic longitude of the NCP)`)}</div>`+
+ st(0,'The triangle P G X',`<div class="def">P = NCP, G = NGP, X = object. Sides: PG = 90° − ${sg('δ')} (fixed), PX = 90° − ${s('δ')}, GX = 90° − ${s('b')}. Angles: P = ${s('α')} − ${sg('α')}, G = ${lp} − ${s('l')}.</div>`)+
+ st(1,`1 · Known: ${s('α')}, ${s('δ')}`,fm(`PG = 90° − ${sg('δ')} = ${fd(c.pg,0,2)}<br>PX = 90° − ${s('δ')} = 90° − ${fd(de,0,2)} = ${fd(c.px,0,2)}<br>∠P = |${s('α')} − ${sg('α')}| = ${fd(c.aP,0,2)}`),`linear-gradient(${CR},${CB})`)+
+ st(2,`2 · Cosine rule → ${s('b')}`,fm(`cos GX = cos PG cos PX + sin PG sin PX cos P<br>sin ${s('b')} = sin ${s('δ')} sin ${sg('δ')} + cos ${s('δ')} cos ${sg('δ')} cos(${s('α')} − ${sg('α')})<br>= ${f(sn(de))}·${f(sn(DLG))} + ${f(cs(de))}·${f(cs(DLG))}·${f(cs(da))}<br>= ${f(sb)}<br>${cl('b = '+fd(bb,1,2),'b')}`),CB)+
+ st(3,`3 · Position angle → ${s('l')}`,fm(`cos ${s('b')} sin(${lp} − ${s('l')}) = cos ${s('δ')} sin(${s('α')} − ${sg('α')}) = ${f(yv)}<br>cos ${s('b')} cos(${lp} − ${s('l')}) = sin ${s('δ')} cos ${sg('δ')} − cos ${s('δ')} sin ${sg('δ')} cos(${s('α')} − ${sg('α')}) = ${f(xv)}<br>${lp} − ${s('l')} = atan2(${f(yv)}, ${f(xv)}) = ${fd(dl,0,2)}<br>${cl('l = '+fd(lc,0,2),'l')}`),CL)+
+ st(4,'4 · Angle at X (bonus)',fm(`sin X / sin PG = sin G / sin PX<br>sin X = sin G cos ${sg('δ')} / cos ${s('δ')} = ${f(sx)}<br><b>∠X = ${fd(c.aX,0,2)}</b> (position angle of galactic north)`))+
+ `<div class="box"><b>Result</b>${fm(`(${s('α')}, ${s('δ')}) → (${s('l')}, ${s('b')})<br>${s('l')} = ${fd(lc,0,2)}<br>${s('b')} = ${fd(bb,1,2)}<br>check vs app: l = ${fd(c.l,0,2)}, b = ${fd(c.b,1,2)}`)}</div>`;
+ const GRY='#9aa3b0',SPG='#a05cd6',SPX='#d6336c',gS=(t,k)=>`<span style="color:${k}">${t}</span>`,n=x=>fd(x,0,2),vs=S.step,
+  pg=`90°−${sg('δ')}`,px=`90°−${s('δ')}`,gx=`90°−${s('b')}`,Pa=`${s('α')}−${sg('α')}`,Ga=`${lp}−${s('l')}`;
+ let T0='Spherical law of cosines (Gauss)',l1,l2='',l3='';
+ if(vs==1||vs==2){l1=`cos${vs==2?`(${gx})`:' '+gS('GX',GRY)} = cos(${pg})·cos(${px}) + sin(${pg})·sin(${px})·cos(${Pa})`;l2=`cos(${vs==2?n(c.gx):'?'}) = cos(${n(c.pg)})·cos(${n(c.px)}) + sin(${n(c.pg)})·sin(${n(c.px)})·cos(${n(c.aP)})`;l3=vs==1?'GX is unknown (grey): it is found in step 2':'solving for the side GX opposite the angle at P'}
+ else if(vs==3){l1=`cos(${px}) = cos(${pg})·cos(${gx}) + sin(${pg})·sin(${gx})·cos(${Ga})`;l2=`cos(${n(c.px)}) = cos(${n(c.pg)})·cos(${n(c.gx)}) + sin(${n(c.pg)})·sin(${n(c.gx)})·cos(${n(c.aG)})`;l3='same rule with PX opposite the angle at G; solve for l (quadrant from the atan2 form)'}
+ else if(vs==4){T0='Spherical law of sines';l1=`sin X / sin(${pg}) = sin(${Ga}) / sin(${px})`;l2=`sin(${n(c.aX)}) / sin(${n(c.pg)}) = sin(${n(c.aG)}) / sin(${n(c.px)})`;l3='bonus: the angle at X from the ratio of sine to opposite side'}
+ else{l1=`cos ${gS('GX',CB)} = cos ${gS('PG',SPG)} · cos ${gS('PX',SPX)} + sin ${gS('PG',SPG)} · sin ${gS('PX',SPX)} · cos ${gS('P',CR)}`;l3='GX is the side opposite the angle P · hover a step to fill in the slots'}
+ const gh=`<small>${T0}</small><div>${l1}</div>${l2?`<div class="nm">${l2}</div>`:''}<small>${l3}</small>`;
+ if(gh!==gfLast){gfLast=gh;$('gf').innerHTML=gh}
+ if(html!==triLast){triLast=html;$('tri').innerHTML=html}}
 function renderSide(){const g=(a,b)=>LES.slice(a,b).map((l,j)=>`<button data-i="${a+j}" class="${a+j==S.lesson?'on':''}">${l[0]}</button>`).join('');
  $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5);
  $('card').innerHTML=`<b>${LES[S.lesson][0]}</b><p>${TXT[S.lesson]}</p><div class="fm">${FM[S.lesson]}</div><div id="live"></div><canvas id="pv" width="600" height="360"></canvas>`}
@@ -491,7 +567,7 @@ $('now').onclick=()=>{const n=new Date();UT=n.getUTCHours()+n.getUTCMinutes()/60
 $('fmt').onclick=e=>{const f=e.target.dataset.f;if(f==null)return;S.sex=+f;document.querySelectorAll('#fmt button').forEach(b=>b.classList.toggle('on',b.dataset.f==f));dirty=1};
 $('sky').oninput=()=>{SKYOP=$('sky').value/100;$('skyO').textContent=$('sky').value+'%';dirty=1};
 $('tms2').onpointerdown=e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;const id=tr.dataset.id,r=lastRows.find(x=>x.id===id);S.tq=S.tq===id?null:id;if(S.tq&&r&&r.view){if(r.view.sys!=null)S.sys=r.view.sys;S.tm=r.view.tm;S.lesson=r.view.lesson;renderSide()}dirty=1};
-$('tabs').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tab=+t;document.body.classList.toggle('tr',S.tab==1);document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));dirty=1};
+$('tabs').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tab=+t;S.step=0;triLast='';gfLast='';document.body.classList.toggle('tr',S.tab>0);document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));dirty=1};
 const setStep=e=>{const b=e.target.closest('[data-s]');if(!b)return;const i=+b.dataset.s;if(S.step!==i){S.step=i;dirty=1}};
 $('tri').onpointerover=setStep;$('tri').onpointerdown=setStep;$('tri').onpointerleave=e=>{if(e.pointerType=='mouse'&&S.step){S.step=0;dirty=1}};
 $('dy').max=YL-1;$('ut').value=UT;$('dy').value=DAY;
