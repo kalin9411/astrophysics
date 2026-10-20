@@ -65,11 +65,30 @@ h1,.sub{display:none}
 html:root:root:root{--bg:#0a181b;--fg:#cfe3ea;--mut:#7e969e;--pan:#0e1f25;--bd:#1b3238;--sky:#0a181b;--ac:#5fa8d3}html{color-scheme:dark}body{background:#0a181b}.box,.stp,.ss{border-color:#1b3238}
 #dock{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 10px);z-index:4;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;max-width:96vw}
 .dk{display:flex;align-items:center;gap:8px;background:color-mix(in srgb,var(--pan) 90%,transparent);border:1px solid var(--bd);border-radius:8px;padding:5px 9px;backdrop-filter:blur(6px)}.dk span{color:var(--mut);font-size:12px;white-space:nowrap}
+
+.wheel{position:relative;overflow:hidden;height:30px;cursor:grab;user-select:none;touch-action:pan-y;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 24%,#000 76%,transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 24%,#000 76%,transparent 100%)}
+.wtrack{position:relative;display:flex;align-items:center;gap:26px;height:100%;width:max-content;white-space:nowrap;transition:transform .3s cubic-bezier(.25,.8,.25,1);will-change:transform}
+.wheel button,.tabs.wheel button{all:unset;cursor:pointer;font:600 12px/30px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.05em;color:var(--fg);opacity:.5;padding:0 2px;transition:color .25s,opacity .25s}
+.wheel button.on,.tabs.wheel button.on{color:#ffd60a;background:none;opacity:1}
+.tabs.wheel{display:block;width:min(400px,92vw);background:none;border:0;padding:0;backdrop-filter:none;border-radius:0}
+.dk{flex-direction:column;align-items:center;gap:0;background:none;border:0;padding:0;backdrop-filter:none}.dk span{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-top:-3px}
+
+.rl{margin:14px 0 8px}.rt{position:relative;height:26px}.rn{position:absolute;left:0;top:4px;color:var(--mut);font-size:12px}
+.rt output{display:block;text-align:center;font:600 20px/26px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#ffd60a;font-variant-numeric:tabular-nums}
+.ruler{position:relative;height:66px;margin-top:2px;cursor:grab;touch-action:pan-y;user-select:none;outline:none}
+.ruler canvas{display:block;width:100%;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 18%,#000 82%,transparent 100%);mask-image:linear-gradient(to right,transparent 0,#000 18%,#000 82%,transparent 100%)}
+.rptr{position:absolute;left:50%;bottom:4px;margin-left:-6px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #ffd60a}
+.ruler:focus-visible .rptr{border-bottom-color:#fff0a0}
+.wheel button,.tabs.wheel button{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:14px;letter-spacing:.01em}
+.tabs.wheel{height:30px;width:min(420px,94vw)}.tabs.wheel button{font-size:14px;line-height:30px;font-weight:600}
+#dock{gap:48px}
+#legend{bottom:calc(env(safe-area-inset-bottom,0px) + 86px)}
+#eq{bottom:calc(env(safe-area-inset-bottom,0px) + 156px)}
 </style></head><body>
 <h1>Celestial Sphere Lab</h1>
 <div class="sub">Drag to rotate · scroll to zoom · choose the object in the right panel Everything is drawn for an observer at the centre.</div>
 <main>
-<div class="tabs" id="tabs"><button data-t="0" class="on">View</button><button data-t="1">Horizontal → Equatorial</button><button data-t="2">Equatorial → Galactic</button></div>
+<div class="tabs wheel" id="tabs"><div class="wtrack"><button data-t="0" class="on">View</button><button data-t="1">Horizontal → Equatorial</button><button data-t="2">Equatorial → Galactic</button></div></div>
 <button class="tgl" id="tl" title="Show / hide lessons">☰</button><button class="tgl" id="tr" title="Show / hide controls">⚙</button>
 <aside id="lft"><div class="box"><div class="les" id="les" style="margin-top:0"></div></div><div class="box" id="card"></div></aside>
 <aside id="tri"></aside>
@@ -92,7 +111,7 @@ html:root:root:root{--bg:#0a181b;--fg:#cfe3ea;--mut:#7e969e;--pan:#0e1f25;--bd:#
 <div class="box vw"><b>Derived quantities</b><table id="der"></table></div>
 <div class="box vw"><b>Times</b><div class="def">Click a row to show the angles of its formula on the sphere.</div><table id="tms2"></table></div>
 </section></main>
-<div id="dock"><div class="dk"><span>Camera axis</span><div class="seg" id="ref"><button data-r="0" class="on">Horizontal</button><button data-r="1">Equatorial</button><button data-r="2">Ecliptic</button><button data-r="3">Galactic</button></div></div><div class="dk"><span>Angle format</span><div class="seg" id="fmt"><button data-f="0">Decimal</button><button data-f="1" class="on">h m s · ° ′ ″</button></div></div></div>
+<div id="dock"><div class="dk"><div class="wheel" id="ref" style="width:min(250px,92vw)"><div class="wtrack"><button data-r="0" class="on">Horizontal</button><button data-r="1">Equatorial</button><button data-r="2">Ecliptic</button><button data-r="3">Galactic</button></div></div><span>camera axis</span></div><div class="dk"><div class="wheel" id="fmt" style="width:min(220px,92vw)"><div class="wtrack"><button data-f="0">Decimal</button><button data-f="1" class="on">h m s · ° ′ ″</button></div></div><span>angle format</span></div></div>
 <div id="eq"></div><div id="gf"></div><div id="tip"></div>
 <script>
 const D=Math.PI/180,$=id=>document.getElementById(id),cv=$('cv'),ctx=cv.getContext('2d');
@@ -282,7 +301,7 @@ function table(C,o){
  <tr><td>Sun λ / Dec</td><td>${fd(sc[3][0])} / ${fd(sc[2][1],1,2)}</td></tr><tr><td>Obliquity ε</td><td>${fd(EPS,0,2)}</td></tr>`}
 function ui(){
   $('legend').innerHTML=`<span><i class="k" style="background:${CL}"></i>longitude / H</span><span><i class="k" style="background:${CR}"></i>α (RA)</span><span><i class="k" style="background:${CB}"></i>latitude / Dec / z</span><span><i class="k" style="background:${CS}"></i>LST</span>`+COL.map((c,i)=>`<span><i class="k" style="background:${c}"></i>${['horizon','equator','equator','ecliptic','Gal. plane'][i]}</span>`).filter((_,i)=>i!=2&&i<7).join('');
- const fx=()=>{$('utO').textContent=hms(UT).slice(0,-4);$('dyO').textContent=T.date.toISOString().slice(5,10);$('laO').textContent=(+$('la').value).toFixed(1)+'°';$('loO').textContent=(+$('lo').value).toFixed(1)+'°';document.querySelectorAll('#ssn button').forEach(b=>b.classList.toggle('on',Math.abs(DAY-b.dataset.d)<=1))};
+ const fx=()=>{$('utO').textContent=hms(UT).slice(0,-4);$('dyO').textContent=T.date.toISOString().slice(5,10);$('laO').textContent=(+$('la').value).toFixed(1)+'°';$('loO').textContent=(+$('lo').value).toFixed(1)+'°';document.querySelectorAll('#ssn button').forEach(b=>b.classList.toggle('on',Math.abs(DAY-b.dataset.d)<=1));drawRulers()};
  ui.fx=fx;fx()}
 $('obj').innerHTML=OBJ.map((o,i)=>`<option value="${i}">${o.n}</option>`).join('');$('obj').value=ST.length;
 $('lay').innerHTML=Object.keys(lays).map(k=>`<label><input type="checkbox" data-l="${k}" ${S.lay[k]?'checked':''}> ${lays[k]}</label>`).join(' ');
@@ -304,7 +323,7 @@ cv.onpointerup=e=>{cv.style.cursor='grab';if(dr&&dr.m<5)showTip(e.clientX,e.clie
 addEventListener('resize',()=>dirty=1);
 cv.onpointerleave=()=>$('tip').style.display='none';
 cv.addEventListener('wheel',e=>{e.preventDefault();S.zoom=Math.max(.5,Math.min(2.2,S.zoom*(e.deltaY<0?1.08:.92)));dirty=1},{passive:false});
-$('tl').onclick=()=>$(S.tab?'tri':'lft').classList.toggle('hide');$('tr').onclick=()=>$('ctl').classList.toggle('hide');
+$('tl').onclick=()=>$(S.tab?'tri':'lft').classList.toggle('hide');$('tr').onclick=()=>{$('ctl').classList.toggle('hide');drawRulers()};
 if(innerWidth<1000){$('lft').classList.add('hide');$('tri').classList.add('hide');$('ctl').classList.add('hide')}
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>dirty=1);
 const LES=[['Horizontal (Az / Alt)',0],['Hour angle (H / Dec)',1],['Equatorial (RA / Dec)',2],['Ecliptic (λ / β)',3],['Galactic (l / b)',4],['Sidereal time',2],['Apparent solar time',1,ST.length],['Mean solar time',1,ST.length],['Equation of time',2,ST.length]];
@@ -555,7 +574,7 @@ function hemiPath(n){const q=proj(n,1),dx=q[0]-cx,dy=q[1]-cy,m=Math.hypot(dx,dy)
  if(m<1e-3){ctx.arc(cx,cy,R,0,7);return}
  const f=Math.atan2(dy,dx),b=Math.sqrt(Math.max(0,1-m*m));
  ctx.ellipse(cx,cy,Math.max(.5,R*b),R,f,Math.PI/2,Math.PI*1.5,false);ctx.arc(cx,cy,R,f-Math.PI/2,f+Math.PI/2,false);ctx.closePath()}
-function setRef(r){S.ref=r;document.querySelectorAll('#ref button').forEach(b=>b.classList.toggle('on',+b.dataset.r===r));triLast='';gfLast='';dirty=1}
+function setRef(r){S.ref=r;document.querySelectorAll('#ref button').forEach(b=>b.classList.toggle('on',+b.dataset.r===r));syncWheels();triLast='';gfLast='';dirty=1}
 const refBox=()=>`<div class="box"><b>Camera rotation axis</b><div class="seg" style="margin-top:6px">${['Horizontal','Equatorial','Ecliptic','Galactic'].map((n,i)=>`<button data-r="${i}" class="${S.ref===i?'on':''}">${n}</button>`).join('')}</div></div>`;
 function agrad(qs,col,a0=.02,a1=.34){if(!ctx.createConicGradient)return hexa(col,.3);
  let prev=null,acc=0;const ang=qs.map(q=>{const a=Math.atan2(q[1]-cy,q[0]-cx);if(prev===null)acc=a;else{let d=a-prev;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;acc+=d}prev=a;return acc});
@@ -579,6 +598,38 @@ function cusApply(){const k=+$('csys').value,c=CS_L[k],a=parseAng($('cx1').value
 function tkG(f,t,txt,col){const q=proj(f(t),1.09);LBL.push(()=>{ctx.globalAlpha=(q[2]<0?1:.4)*gf(q);ctx.font='11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';ctx.lineWidth=3;ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--sky');ctx.strokeText(txt,q[0]-8,q[1]+4);ctx.fillStyle=col;ctx.fillText(txt,q[0]-8,q[1]+4);ctx.globalAlpha=1})}
 const LOM=LNCP-90;
 Object.assign(TIP2,{'∠G':`Angle at the galactic pole between the directions to P and to X: 90° − l′, where l′ = l − lΩ and lΩ = 32.93° (almanac).`,'lΩ':`Galactic longitude of the ascending node Ω of the galactic plane on the celestial equator: lΩ = lP − 90° ≈ 32.93° (the almanac value).`,'l′':`Longitude measured from the ascending node: l′ = l − lΩ. It comes from cos l′ cos b = cos δ sin(α − A).`});
+function syncWheels(){document.querySelectorAll('.wheel').forEach(w=>{const t=w.querySelector('.wtrack'),on=w.querySelector('button.on')||w.querySelector('button');if(!t||!on)return;t.style.transform='translateX('+(w.clientWidth/2-(on.offsetLeft+on.offsetWidth/2))+'px)'})}
+function initWheels(){document.querySelectorAll('.wheel').forEach(w=>{let x0=null;w.addEventListener('pointerdown',e=>{x0=e.clientX});
+ w.addEventListener('pointerup',e=>{if(x0===null)return;const dx=e.clientX-x0;x0=null;if(Math.abs(dx)>28){const b=[...w.querySelectorAll('button')],i=b.findIndex(x=>x.classList.contains('on')),j=Math.max(0,Math.min(b.length-1,i+(dx<0?1:-1)));if(j!==i)b[j].click()}});
+ w.addEventListener('pointerleave',()=>{x0=null})});syncWheels();setTimeout(syncWheels,120);addEventListener('resize',syncWheels)}
+const RUL=[],BLUE='#ffd60a',MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const q5=[0,25,50,75,100].map(v=>({v,t:''+v})),RSPEC={ut:{minor:.5,maj:()=>[0,3,6,9,12,15,18,21,24].map(v=>({v,t:v+'h'}))},
+ dy:{minor:5,maj:()=>{const a=[{v:0,t:'Jan'}];for(let m=1;m<12;m++)a.push({v:Math.round((Date.UTC(YR,m,1)-Date.UTC(YR,0,1))/864e5),t:MON[m]});a.push({v:YL-1,t:'Dec 31'});return a}},
+ la:{minor:5,maj:()=>[-90,-60,-30,0,30,60,90].map(v=>({v,t:v+'°'}))},lo:{minor:10,maj:()=>[-180,-120,-60,0,60,120,180].map(v=>({v,t:v+'°'}))},
+ sky:{minor:5,maj:()=>q5},grd:{minor:5,maj:()=>q5}};
+const MINPX=25/3;
+function rulerUPP(r){return Math.max(1e-9,(+r.inp.max)-(+r.inp.min))/(r.el.clientWidth||280)}
+function drawRuler(r){const c=r.cv,W=r.el.clientWidth||280,H=50,dpr=devicePixelRatio||1;
+ if(c.width!==Math.round(W*dpr)||c.height!==Math.round(H*dpr)){c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);c.style.height=H+'px'}
+ const g=c.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+ const sp=RSPEC[r.id],v=+r.inp.value,mn=+r.inp.min,mx=+r.inp.max,px=MINPX/sp.minor,half=W/2,vis=half/px,maj=sp.maj();
+ g.fillStyle='#cfe3ea';
+ for(let k=Math.ceil((v-vis)/sp.minor);k<=Math.floor((v+vis)/sp.minor);k++){const tv=k*sp.minor;if(tv<mn-1e-9||tv>mx+1e-9||maj.some(m=>Math.abs(m.v-tv)<sp.minor*.3))continue;g.globalAlpha=tv<=v+1e-9?.5:.28;g.fillRect(Math.round(half+(tv-v)*px)-1,22,2,18)}
+ g.font='10px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';g.textAlign='center';
+ maj.forEach(m=>{if(m.v<v-vis-1||m.v>v+vis+1||m.v<mn-1e-9||m.v>mx+1e-9)return;const x=half+(m.v-v)*px,on=m.v<=v+1e-9;g.globalAlpha=on?.55:.3;g.fillRect(Math.round(x)-1,16,2.5,30);g.globalAlpha=on?.65:.38;g.fillText(m.t,x,11)});
+ g.globalAlpha=1;g.fillStyle=BLUE;{const onM=maj.some(m=>Math.abs(m.v-v)*px<.6);g.fillRect(Math.round(half)-1,onM?16:22,2.5,onM?30:18)}
+ g.globalAlpha=1}
+function drawRulers(){RUL.forEach(drawRuler)}
+function initRulers(){Object.keys(RSPEC).forEach(id=>{const inp=$(id),lab=inp&&inp.closest('label');if(!lab)return;const out=lab.querySelector('output'),name=lab.firstChild.nodeValue.trim(),box=document.createElement('div');
+ box.className='rl';box.innerHTML='<div class="rt"><span class="rn"></span></div><div class="ruler" tabindex="0"><canvas></canvas><i class="rptr"></i></div>';
+ box.querySelector('.rn').textContent=name;box.querySelector('.rt').appendChild(out);inp.style.display='none';box.appendChild(inp);lab.replaceWith(box);
+ const el=box.querySelector('.ruler'),r={id,inp,el,cv:el.querySelector('canvas'),drag:null},sp=RSPEC[id];RUL.push(r);
+ const setVal=nv=>{const st=+inp.step||.01,mn=+inp.min,mx=+inp.max;nv=Math.max(mn,Math.min(mx,Math.round(nv/st)*st));inp.value=nv;inp.dispatchEvent(new Event('input',{bubbles:true}));drawRuler(r)};
+ el.addEventListener('pointerdown',e=>{el.setPointerCapture(e.pointerId);r.drag={x:e.clientX,v:+inp.value};el.style.cursor='grabbing'});
+ el.addEventListener('pointermove',e=>{if(r.drag)setVal(r.drag.v-(e.clientX-r.drag.x)*rulerUPP(r))});
+ const end=()=>{r.drag=null;el.style.cursor='grab'};el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+ el.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();setVal(+inp.value+(e.key==='ArrowRight'?1:-1)*sp.minor*(e.shiftKey?5:1))}})});
+ drawRulers();addEventListener('resize',drawRulers);setTimeout(drawRulers,150)}
 function renderSide(){const g=(a,b)=>LES.slice(a,b).map((l,j)=>`<button data-i="${a+j}" class="${a+j==S.lesson?'on':''}">${l[0]}</button>`).join('');
  $('les').innerHTML='<div class="gl">Coordinate systems</div>'+g(0,5);
  $('card').innerHTML=`<b>${LES[S.lesson][0]}</b><p>${TXT[S.lesson]}</p><div class="fm">${FM[S.lesson]}</div><div id="live"></div><canvas id="pv" width="600" height="360"></canvas>`}
@@ -642,11 +693,11 @@ const di=(m,d)=>Math.round((Date.UTC(YR,m,d)-Date.UTC(YR,0,1))/864e5),SSN=[[di(2
 $('ssn').innerHTML=SSN.map(s=>`<button data-d="${s[0]}"><b>${s[1]} <small>· ${s[2]}</small></b><span>${s[3]}<br>${s[4]}</span></button>`).join('');
 $('ssn').onclick=e=>{const b=e.target.closest('button');if(!b)return;DAY=+b.dataset.d;$('dy').value=DAY;upd();ui.fx()};
 $('now').onclick=()=>{const n=new Date();UT=n.getUTCHours()+n.getUTCMinutes()/60+n.getUTCSeconds()/3600;DAY=Math.min(YL-1,Math.max(0,Math.round((Date.UTC(YR,n.getUTCMonth(),n.getUTCDate())-Date.UTC(YR,0,1))/864e5)));$('ut').value=UT;$('dy').value=DAY;upd();ui.fx()};
-$('fmt').onclick=e=>{const f=e.target.dataset.f;if(f==null)return;S.sex=+f;document.querySelectorAll('#fmt button').forEach(b=>b.classList.toggle('on',b.dataset.f==f));dirty=1};
+$('fmt').onclick=e=>{const f=e.target.dataset.f;if(f==null)return;S.sex=+f;document.querySelectorAll('#fmt button').forEach(b=>b.classList.toggle('on',b.dataset.f==f));syncWheels();dirty=1};
 $('sky').oninput=()=>{SKYOP=$('sky').value/100;$('skyO').textContent=$('sky').value+'%';dirty=1};
 $('grd').oninput=()=>{GRDOP=$('grd').value/100;$('grdO').textContent=$('grd').value+'%';dirty=1};
 $('tms2').onpointerdown=e=>{const tr=e.target.closest('tr[data-id]');if(!tr)return;const id=tr.dataset.id,r=lastRows.find(x=>x.id===id);S.tq=S.tq===id?null:id;if(S.tq&&r&&r.view){if(r.view.sys!=null)S.sys=r.view.sys;S.tm=r.view.tm;S.lesson=r.view.lesson;renderSide()}dirty=1};
-$('tabs').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tab=+t;S.step=0;S.sub=0;triLast='';gfLast='';document.body.classList.toggle('tr',S.tab>0);document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));dirty=1};
+$('tabs').onclick=e=>{const t=e.target.dataset.t;if(t==null)return;S.tab=+t;S.step=0;S.sub=0;triLast='';gfLast='';document.body.classList.toggle('tr',S.tab>0);document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t==t));syncWheels();dirty=1};
 $('tri').onpointerdown=e=>{if(e.target.closest('[data-r]'))return;const b=e.target.closest('[data-s]');if(!b)return;const q=e.target.closest('[data-q]'),i=+b.dataset.s,j=q?+q.dataset.q:0;
  if((S.step===i&&S.sub===j)||i===0){S.step=0;S.sub=0}else{S.step=i;S.sub=j}dirty=1};
 $('ref').onclick=e=>{const r=e.target.dataset.r;if(r!=null)setRef(+r)};
@@ -654,6 +705,7 @@ $('tri').addEventListener('pointerdown',e=>{const b=e.target.closest('[data-r]')
 $('csys').onchange=()=>{cusLabels();cusFill()};$('capply').onclick=cusApply;$('cx1').onkeydown=$('cx2').onkeydown=e=>{if(e.key==='Enter')cusApply()};cusLabels();cusFill();
 let TIPP=0;$('tri').addEventListener('pointermove',e=>{const tp=e.target.closest('[data-tip]'),te=$('tip');if(!tp||!tp.dataset.tip){if(TIPP){te.style.display='none';TIPP=0}return}te.innerHTML='<b>Produces</b><br>'+tp.dataset.tip;te.style.display='block';TIPP=1;te.style.left=Math.min(e.clientX+14,innerWidth-te.offsetWidth-8)+'px';te.style.top=Math.min(e.clientY+14,innerHeight-te.offsetHeight-8)+'px'});
 $('tri').addEventListener('pointerleave',()=>{$('tip').style.display='none';TIPP=0});
+initWheels();initRulers();
 $('dy').max=YL-1;$('ut').value=UT;$('dy').value=DAY;
 upd();ui();renderSide();requestAnimationFrame(loop);
 </script></body></html>
