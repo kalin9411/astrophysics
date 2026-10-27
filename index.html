@@ -80,7 +80,8 @@ html:root:root:root{--bg:#0a181b;--fg:#cfe3ea;--mut:#7e969e;--pan:#0e1f25;--bd:#
 .rptr{position:absolute;left:50%;bottom:4px;margin-left:-6px;border-left:6px solid transparent;border-right:6px solid transparent;border-bottom:10px solid #ffd60a}
 .ruler:focus-visible .rptr{border-bottom-color:#fff0a0}
 .wheel button,.tabs.wheel button{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:14px;letter-spacing:.01em}
-.tabs.wheel{height:30px;width:min(420px,94vw)}.tabs.wheel button{font-size:14px;line-height:30px;font-weight:600}
+.tabs.wheel{top:calc(env(safe-area-inset-top,0px) + 24px);height:44px;width:min(560px,94vw)}.tabs.wheel button{font-size:23px;line-height:44px;font-weight:600}
+aside,#ctl{top:calc(env(safe-area-inset-top,0px) + 82px)}.tgl{top:calc(env(safe-area-inset-top,0px) + 30px)}
 #dock{gap:48px}
 #legend{bottom:calc(env(safe-area-inset-bottom,0px) + 86px)}
 #eq{bottom:calc(env(safe-area-inset-bottom,0px) + 156px)}
@@ -210,7 +211,7 @@ const fh=(deg,p=2)=>S.sex?hms(deg/15):(deg/15).toFixed(p)+'h';
 const fd=(deg,sg,p=1)=>S.sex?dms(deg,sg):(sg&&deg>0?'+':'')+deg.toFixed(p)+'°';
 function draw(){
  const dpr=devicePixelRatio||1,w=innerWidth,hh=innerHeight;if(cv.width!=Math.round(w*dpr)||cv.height!=Math.round(hh*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(hh*dpr)}
- ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=(hh-56)/2;R=Math.min(w,hh-56)*.34*S.zoom;BAS=refBasis();groundSetup();
+ ctx.setTransform(dpr,0,0,dpr,0,0);W=w;cx=w/2;cy=(hh-30)/2;R=Math.min(w,hh-56)*.34*S.zoom;BAS=refBasis();groundSetup();
  FG=getComputedStyle(document.body).color;const mut=getComputedStyle(document.body).getPropertyValue('--mut');
  ctx.clearRect(0,0,w,hh);HOT=[];LBL=[];if(S.tab==1){drawTri();triPanel();return}if(S.tab==2){drawGal();galPanel();return}ctx.textBaseline='alphabetic';
  // horizon disc
